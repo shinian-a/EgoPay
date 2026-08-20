@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+
+<html>
+<head>
+    <title>Epro支付收款系统</title>
+    <meta name="keywords" content=""/>
+    <meta name="description" content=""/>
+    <meta charset="utf-8"/>
+    <link rel="shortcut icon" href="/favicon.ico"/>
+    <link rel="bookmark" href="/favicon.ico"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+    <link rel="stylesheet" href="/assets/css/main.css"/>
+    <noscript>
+        <link rel="stylesheet" href="/assets/css/noscript.css"/>
+    </noscript>
+</head>
+<body>
+<div id="wrapper">
+
+    <header id="header">
+        <div class="logo">
+            <span class="icon fa-rmb"></span>
+        </div>
+        <div class="content">
+            <div class="inner">
+                <h1>Epro支付</h1>
+
+                <p>Epro支付个人用户收款解决方案</p>
+            </div>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#login">登录</a></li>
+                <li><a href="#about">简介</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div id="main">
+
+        <article id="about">
+            <h2 class="major">简介</h2>
+            <ul style="list-style:none;padding:0;line-height:1.8;">
+                <li>✅ 仅为个人用户提供支付宝、微信免签约收款方案</li>
+                <li>✅ 支持 Android / PC端 / 云端多模式监控收款</li>
+                <li>✅ 支持免输入金额支付、扫码自动识别收款金额</li>
+                <li>✅ 基于 V免签 开源项目深度定制开发</li>
+            </ul>
+            <div style="margin-top:15px;padding:10px;background:rgba(255,165,0,0.1);border-left:3px solid orange;font-size:0.9em;color:#ccc;">
+                ⚠️ <strong>免责声明：</strong>本系统仅供学习交流使用，请勿用于任何商业或违法用途。因安装使用本系统所产生的一切损失和纠纷，与Epro支付无关。
+            </div>
+        </article>
+
+
+        <article id="login">
+            <h2 class="major">登录</h2>
+            <form method="post" action="javascript:login();">
+                <div class="field half first">
+                    <label for="user">账号</label>
+                    <input type="text" name="user" id="user"/>
+                </div>
+                <div class="field half">
+                    <label for="pass">密码</label>
+                    <input type="password" name="pass" id="pass"/>
+                </div>
+
+                <ul class="actions">
+                    <li><input id="login2" type="submit" value="登录" class="special"/></li>
+                    <li><input type="reset" value="清空"/></li>
+                </ul>
+            </form>
+            <br>
+            <div id="result" role="dialog">
+                <p color class="h5 margin-top-sm text-black-hint" id="msg"></p>
+            </div>
+        </article>
+
+    </div>
+
+    <footer id="footer">
+        <p class="copyright">&copy;2019-2026 Epro易支付收款系统</p>
+    </footer>
+
+</div>
+
+<div id="bg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@1.11.3"></script>
+<script src="https://cdn.jsdelivr.net/gh/ajlkn/skel@3.0.1/dist/skel.min.js"></script>
+<script src="/assets/js/util.js"></script>
+<script src="/assets/js/main.js"></script>
+<script src="https://lib.baomitu.com/layer/3.1.1/layer.js"></script>
+
+
+<script>
+    function login() {
+        $.post("/login", "user=" + $("#user").val() + "&pass=" + $("#pass").val(), function (data) {
+            layer.msg(data.msg);
+            if (data.code == 1) {
+                window.location.href = "admin.html";
+            }
+        });
+    }
+</script>
+</body>
+</html>

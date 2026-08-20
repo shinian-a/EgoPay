@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>易支付接口测试页面</title>
+    <link rel="stylesheet" href="layui/css/layui.css" media="all"/>
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .qrcode-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .qrcode-img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .order-info {
+            margin: 15px 0;
+            padding: 10px;
+            background: #e8f4ff;
+            border-radius: 5px;
+        }
+
+        /* 添加loading样式 */
+        #loading {
+            text-align: center;
+            display: none;
+        }
+
+        #loading img {
+            display: inline-block;
+        }
+
+        .key-management {
+            margin-top: 10px;
+            padding: 15px 0;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .key-management .layui-btn-container {
+            margin: 0 0 0 110px;
+            padding-left: 15px;
+        }
+
+        .key-management .layui-btn {
+            margin-right: 10px;
+        }
+
+        .key-status {
+            margin-left: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .key-status.success {
+            color: #52c41a;
+        }
+
+        .key-status.warning {
+            color: #faad14;
+        }
+
+        .layui-form-item {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 style="text-align: center;">易支付接口测试页面</h1>
+
+    <!-- 添加居中的loading图标 -->
+    <!--<div id="loading"><img src="payPage/loading.gif" alt="加载中..."></div>-->
+
+    <form class="layui-form" action="" lay-filter="payForm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">商户 PID</label>
+            <div class="layui-input-block">
+                <input type="text" name="pid" placeholder="请输入后台配置的商户 PID" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">通讯密钥</label>
+            <div class="layui-input-block">
+                <input type="text" name="key" placeholder="请输入通讯密钥" autocomplete="off" class="layui-input"
+                       id="keyInput">
+                <div class="layui-form-mid layui-word-aux">用于生成签名</div>
+            </div>
+        </div>
+
+        <div class="key-management">
+            <div class="layui-btn-container">
+                <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="saveKeyBtn">保存密钥</button>
+                <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="clearKeyBtn">清除密钥
+                </button>
+            </div>
+            <div class="key-status" id="keyStatus"></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">商户订单号</label>
+            <div class="layui-input-block">
+                <input type="text" name="out_trade_no" placeholder="请输入商户订单号" autocomplete="off" class="layui-input"
+                       value="">
+                <div class="layui-form-mid layui-word-aux">商户订单号，建议使用时间戳，不可重复</div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">商品名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" placeholder="请输入商品名称" autocomplete="off" class="layui-input"
+                       value="测试商品">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">支付方式</label>
+            <div class="layui-input-block">
+                <input type="radio" name="type" value="1" title="微信支付">
+                <input type="radio" name="type" value="2" title="支付宝支付" checked>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">订单金额</label>
+            <div class="layui-input-block">
+                <input type="number" name="money" placeholder="请输入订单金额" autocomplete="off" class="layui-input"
+                       step="0.01" value="1.00">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">附加参数</label>
+            <div class="layui-input-block">
+                <input type="text" name="param" placeholder="请输入附加参数(可选)" autocomplete="off"
+                       class="layui-input" value="test123">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">notify_url</label>
+            <div class="layui-input-block">
+                <input type="url" name="notifyUrl" autocomplete="off" class="layui-input">
+                <div class="layui-form-mid layui-word-aux">商城服务器接收支付结果后必须返回 success</div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">return_url</label>
+            <div class="layui-input-block">
+                <input type="url" name="returnUrl" autocomplete="off" class="layui-input">
+                <div class="layui-form-mid layui-word-aux">用户支付完成后浏览器跳转的商城页面</div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">支付页面</label>
+            <div class="layui-input-block">
+                <input type="radio" name="mode" value="submit" title="submit.php 页面支付" checked>
+                <input type="radio" name="mode" value="mapi" title="mapi.php 返回JSON">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="createOrder">发起支付</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="result-box" id="resultBox">
+        <h3>支付信息</h3>
+        <div class="order-info" id="orderInfo"></div>
+        <div class="qrcode-container" id="qrcodeContainer"></div>
+        <div class="layui-btn-container">
+            <button class="layui-btn layui-btn-normal" id="checkOrderBtn">查询订单状态</button>
+            <button class="layui-btn layui-btn-danger" id="closeOrderBtn">关闭订单</button>
+            <button class="layui-btn layui-btn-primary" id="testNotifyBtn">测试回调校验</button>
+        </div>
+        <div class="result-details" id="resultDetails"></div>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script>
+    layui.use(['form', 'layer', 'jquery'], function () {
+        var form = layui.form;
+        var layer = layui.layer;
+        var $ = layui.jquery;
+
+        // 页面加载完成后生成时间戳作为默认订单号，并尝试加载保存的密钥
+        $(document).ready(function () {
+            $("input[name='pid']").val(localStorage.getItem('paymentTestPid') || '');
+            $("input[name='out_trade_no']").val('TEST' + new Date().getTime());
+            $("input[name='notifyUrl']").val(window.location.origin + '/returnNotify');
+            $("input[name='returnUrl']").val(window.location.origin + '/payTest.html');
+            showReturnQuery();
+
+            // 尝试从localStorage加载保存的密钥
+            loadSavedKey();
+        });
+
+        // 保存密钥到localStorage
+        $('#saveKeyBtn').click(function () {
+            var key = $('#keyInput').val().trim();
+            if (key) {
+                localStorage.setItem('paymentTestKey', key);
+                localStorage.setItem('paymentTestPid', $("input[name='pid']").val().trim());
+                $('#keyStatus').text('密钥已保存').addClass('success').removeClass('warning');
+                setTimeout(() => {
+                    $('#keyStatus').text('');
+                }, 3000);
+            } else {
+                layer.msg('请输入有效的密钥', {icon: 2});
+            }
+        });
+
+        // 从localStorage清除密钥
+        $('#clearKeyBtn').click(function () {
+            localStorage.removeItem('paymentTestKey');
+            $('#keyInput').val('');
+            $('#keyStatus').text('密钥已清除').addClass('warning').removeClass('success');
+            setTimeout(() => {
+                $('#keyStatus').text('');
+            }, 3000);
+        });
+
+        // 从localStorage加载保存的密钥
+        function loadSavedKey() {
+            var savedKey = localStorage.getItem('paymentTestKey');
+            if (savedKey) {
+                $('#keyInput').val(savedKey);
+                $('#keyStatus').text('已加载保存的密钥').addClass('success').removeClass('warning');
+                setTimeout(() => {
+                    $('#keyStatus').text('');
+                }, 3000);
+            } else {
+                // 密钥由后台生成或修改，不能使用固定默认值
+                $('#keyInput').val('');
+                $('#keyStatus').text('请填写后台配置的通讯密钥').addClass('warning').removeClass('success');
+            }
+        }
+
+        // 创建标准易支付订单
+        form.on('submit(createOrder)', function (data) {
+            var formData = data.field;
+
+            if (!formData.pid || !formData.pid.trim()) {
+                layer.msg('请输入后台配置的商户 PID', {icon: 2});
+                return false;
+            }
+            if (!formData.key || !formData.key.trim()) {
+                layer.msg('请填写后台配置的通讯密钥', {icon: 2});
+                return false;
+            }
+
+            var type = formData.type === '1' ? 'wxpay' : 'alipay';
+            var requestData = {
+                pid: formData.pid,
+                type: type,
+                out_trade_no: formData.out_trade_no,
+                notify_url: formData.notifyUrl,
+                return_url: formData.returnUrl,
+                name: formData.name,
+                money: formData.money,
+                param: formData.param || '',
+                sign_type: 'MD5'
+            };
+            requestData.sign = makeEpaySign(requestData, formData.key);
+
+            if (formData.mode === 'submit') {
+                window.location.href = '/submit.php?' + $.param(requestData);
+                return false;
+            }
+
+            $.ajax({
+                url: '/mapi.php',
+                method: 'GET',
+                data: requestData,
+                dataType: 'json',
+                success: function (res) {
+                    if (res.code === 1) {
+                        showEpayResult(res, requestData, formData.key);
+                    } else {
+                        layer.msg('创建订单失败: ' + res.msg, {icon: 2});
+                    }
+                },
+                error: function () {
+                    layer.msg('mapi.php 请求失败，请检查接口地址和签名', {icon: 2});
+                }
+            });
+
+            return false;
+        });
+
+        function makeEpaySign(params, key) {
+            var content = Object.keys(params)
+                .filter(function (name) {
+                    return name !== 'sign' && name !== 'sign_type' &&
+                        params[name] !== undefined && params[name] !== null && params[name] !== '';
+                })
+                .sort()
+                .map(function (name) {
+                    return name + '=' + params[name];
+                }).join('&');
+            return md5(content + key);
+        }
+
+        function showEpayResult(data, requestData, key) {
+            $('#resultBox').show();
+            $('#orderInfo').html('<p><strong>商户订单号：</strong>' + requestData.out_trade_no +
+                '</p><p><strong>接口订单号：</strong>' + (data.trade_no || data.orderId || '') +
+                '</p><p><strong>支付方式：</strong>' + requestData.type +
+                '</p><p><strong>金额：</strong>' + requestData.money + ' 元</p>');
+            $('#qrcodeContainer').html('<p>API 返回结果：</p><pre>' +
+                $('<div>').text(JSON.stringify(data, null, 2)).html() + '</pre>' +
+                (data.qrcode ? '<p><img class="qrcode-img" src="' + data.qrcode + '" alt="支付二维码"></p>' : ''));
+            $('#resultDetails').data('outTradeNo', requestData.out_trade_no);
+            $('#resultDetails').data('orderId', data.orderId || '');
+            $('#resultDetails').data('pid', requestData.pid);
+            $('#resultDetails').data('key', key);
+            $('#resultDetails').data('type', requestData.type);
+        }
+
+        // 调用标准易支付 query.php
+        $('#checkOrderBtn').click(function () {
+            var outTradeNo = $('#resultDetails').data('outTradeNo');
+            var pid = $('#resultDetails').data('pid');
+            var key = $('#resultDetails').data('key');
+            if (!outTradeNo || !pid || !key) {
+                layer.msg('请先创建订单', {icon: 2});
+                return;
+            }
+
+            var requestData = {
+                pid: pid,
+                out_trade_no: outTradeNo,
+                sign_type: 'MD5'
+            };
+            requestData.sign = makeEpaySign(requestData, key);
+
+            $.ajax({
+                url: '/query.php',
+                method: 'GET',
+                data: requestData,
+                dataType: 'json',
+                success: function (res) {
+                    $('#resultDetails').html('<pre>' +
+                        $('<div>').text(JSON.stringify(res, null, 2)).html() + '</pre>');
+                },
+                error: function () {
+                    layer.msg('query.php 请求失败', {icon: 2});
+                }
+            });
+        });
+
+        // 关闭订单
+        $('#closeOrderBtn').click(function () {
+            var orderId = $('#resultDetails').data('orderId');
+            var key = $('#resultDetails').data('key');
+            if (!orderId || !key) {
+                layer.msg('缺少订单信息', {icon: 2});
+                return;
+            }
+
+            var sign = md5(orderId + key);
+
+            $.ajax({
+                url: '/closeOrder',
+                method: 'POST',
+                data: {
+                    orderId: orderId,
+                    sign: sign
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.code === 1) {
+                        layer.msg('订单关闭成功', {icon: 1});
+                    } else {
+                        layer.msg('关闭订单失败: ' + res.msg, {icon: 2});
+                    }
+                },
+                error: function () {
+                    layer.msg('关闭订单请求失败', {icon: 2});
+                }
+            });
+        });
+
+        // 使用当前订单构造标准易支付回调，验证 VMQ 的回调接口和签名校验。
+        $('#testNotifyBtn').click(function () {
+            var detail = $('#resultDetails');
+            var key = detail.data('key');
+            var pid = detail.data('pid');
+            var outTradeNo = detail.data('outTradeNo');
+            var type = detail.data('type');
+            var formData = form.val('payForm');
+            if (!key || !pid || !outTradeNo) {
+                layer.msg('请先创建订单', {icon: 2});
+                return;
+            }
+            var callback = {
+                pid: pid,
+                trade_no: detail.data('orderId') || outTradeNo,
+                out_trade_no: outTradeNo,
+                type: type,
+                name: formData.name,
+                money: formData.money,
+                trade_status: 'TRADE_SUCCESS',
+                param: formData.param || '',
+                sign_type: 'MD5'
+            };
+            callback.sign = makeEpaySign(callback, key);
+            $.ajax({
+                url: '/pay/notify',
+                method: 'GET',
+                data: callback,
+                success: function (res) {
+                    layer.msg('回调校验结果：' + res, {icon: res === 'success' ? 1 : 2});
+                },
+                error: function () {
+                    layer.msg('回调接口请求失败', {icon: 2});
+                }
+            });
+        });
+
+        function showReturnQuery() {
+            if (!window.location.search || window.location.pathname.indexOf('payTest.html') < 0) {
+                return;
+            }
+            var query = new URLSearchParams(window.location.search);
+            if (query.get('trade_status') || query.get('out_trade_no')) {
+                $('#resultBox').show();
+                $('#orderInfo').html('<p><strong>商城页面跳转通知参数：</strong></p><pre>' +
+                    $('<div>').text(JSON.stringify(Object.fromEntries(query.entries()), null, 2)).html() +
+                    '</pre>');
+            }
+        }
+
+        // 简单的MD5实现（实际项目中应引入完整的md5.js库）
+        function md5(string) {
+            function encodeUTF8(s) {
+                return unescape(encodeURIComponent(s));
+            }
+
+            function hex(md5) {
+                return md5.map(function (i) {
+                    return (i < 16 ? '0' : '') + i.toString(16);
+                }).join('');
+            }
+
+            function md5cycle(x, k) {
+                var a = x[0], b = x[1], c = x[2], d = x[3];
+
+                a = ff(a, b, c, d, k[0], 7, -680876936);
+                d = ff(d, a, b, c, k[1], 12, -389564586);
+                c = ff(c, d, a, b, k[2], 17, 606105819);
+                b = ff(b, c, d, a, k[3], 22, -1044525330);
+                a = ff(a, b, c, d, k[4], 7, -176418897);
+                d = ff(d, a, b, c, k[5], 12, 1200080426);
+                c = ff(c, d, a, b, k[6], 17, -1473231341);
+                b = ff(b, c, d, a, k[7], 22, -45705983);
+                a = ff(a, b, c, d, k[8], 7, 1770035416);
+                d = ff(d, a, b, c, k[9], 12, -1958414417);
+                c = ff(c, d, a, b, k[10], 17, -42063);
+                b = ff(b, c, d, a, k[11], 22, -1990404162);
+                a = ff(a, b, c, d, k[12], 7, 1804603682);
+                d = ff(d, a, b, c, k[13], 12, -40341101);
+                c = ff(c, d, a, b, k[14], 17, -1502002290);
+                b = ff(b, c, d, a, k[15], 22, 1236535329);
+
+                a = gg(a, b, c, d, k[1], 5, -165796510);
+                d = gg(d, a, b, c, k[6], 9, -1069501632);
+                c = gg(c, d, a, b, k[11], 14, 643717713);
+                b = gg(b, c, d, a, k[0], 20, -373897302);
+                a = gg(a, b, c, d, k[5], 5, -701558691);
+                d = gg(d, a, b, c, k[10], 9, 38016083);
+                c = gg(c, d, a, b, k[15], 14, -660478335);
+                b = gg(b, c, d, a, k[4], 20, -405537848);
+                a = gg(a, b, c, d, k[9], 5, 568446438);
+                d = gg(d, a, b, c, k[14], 9, -1019803690);
+                c = gg(c, d, a, b, k[3], 14, -187363961);
+                b = gg(b, c, d, a, k[8], 20, 1163531501);
+                a = gg(a, b, c, d, k[13], 5, -1444681467);
+                d = gg(d, a, b, c, k[2], 9, -51403784);
+                c = gg(c, d, a, b, k[7], 14, 1735328473);
+                b = gg(b, c, d, a, k[12], 20, -1926607734);
+
+                a = hh(a, b, c, d, k[5], 4, -378558);
+                d = hh(d, a, b, c, k[8], 11, -2022574463);
+                c = hh(c, d, a, b, k[11], 16, 1839030562);
+                b = hh(b, c, d, a, k[14], 23, -35309556);
+                a = hh(a, b, c, d, k[1], 4, -1530992060);
+                d = hh(d, a, b, c, k[4], 11, 1272893353);
+                c = hh(c, d, a, b, k[7], 16, -155497632);
+                b = hh(b, c, d, a, k[10], 23, -1094730640);
+                a = hh(a, b, c, d, k[13], 4, 681279174);
+                d = hh(d, a, b, c, k[0], 11, -358537222);
+                c = hh(c, d, a, b, k[3], 16, -722521979);
+                b = hh(b, c, d, a, k[6], 23, 76029189);
+                a = hh(a, b, c, d, k[9], 4, -640364487);
+                d = hh(d, a, b, c, k[12], 11, -421815835);
+                c = hh(c, d, a, b, k[15], 16, 530742520);
+                b = hh(b, c, d, a, k[2], 23, -995338651);
+
+                a = ii(a, b, c, d, k[0], 6, -198630844);
+                d = ii(d, a, b, c, k[7], 10, 1126891415);
+                c = ii(c, d, a, b, k[14], 15, -1416354905);
+                b = ii(b, c, d, a, k[5], 21, -57434055);
+                a = ii(a, b, c, d, k[12], 6, 1700485571);
+                d = ii(d, a, b, c, k[3], 10, -1894986606);
+                c = ii(c, d, a, b, k[10], 15, -1051523);
+                b = ii(b, c, d, a, k[1], 21, -2054922799);
+                a = ii(a, b, c, d, k[8], 6, 1873313359);
+                d = ii(d, a, b, c, k[15], 10, -30611744);
+                c = ii(c, d, a, b, k[6], 15, -1560198380);
+                b = ii(b, c, d, a, k[13], 21, 1309151649);
+                a = ii(a, b, c, d, k[4], 6, -145523070);
+                d = ii(d, a, b, c, k[11], 10, -1120210379);
+                c = ii(c, d, a, b, k[2], 15, 718787259);
+                b = ii(b, c, d, a, k[9], 21, -343485551);
+
+                x[0] = add32(a, x[0]);
+                x[1] = add32(b, x[1]);
+                x[2] = add32(c, x[2]);
+                x[3] = add32(d, x[3]);
+            }
+
+            function cmn(q, a, b, x, s, t) {
+                a = add32(add32(a, q), add32(x, t));
+                return add32((a << s) | (a >>> (32 - s)), b);
+            }
+
+            function ff(a, b, c, d, x, s, t) {
+                return cmn((b & c) | ((~b) & d), a, b, x, s, t);
+            }
+
+            function gg(a, b, c, d, x, s, t) {
+                return cmn((b & d) | (c & (~d)), a, b, x, s, t);
+            }
+
+            function hh(a, b, c, d, x, s, t) {
+                return cmn(b ^ c ^ d, a, b, x, s, t);
+            }
+
+            function ii(a, b, c, d, x, s, t) {
+                return cmn(c ^ (b | (~d)), a, b, x, s, t);
+            }
+
+            function md5blk(s) {
+                var md5blks = [],
+                    i;
+                for (i = 0; i < 64; i += 4) {
+                    md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) + (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24);
+                }
+                return md5blks;
+            }
+
+            var hex_chr = '0123456789abcdef'.split('');
+
+            function rhex(n) {
+                var s = '',
+                    j = 0;
+                for (; j < 4; j++)
+                    s += hex_chr[(n >> (j * 8 + 4)) & 0x0F] + hex_chr[(n >> (j * 8)) & 0x0F];
+                return s;
+            }
+
+            function hex(x) {
+                for (var i = 0; i < x.length; i++)
+                    x[i] = rhex(x[i]);
+                return x.join('');
+            }
+
+            function md5(s) {
+                return hex(md51(s));
+            }
+
+            function md51(s) {
+                var n = s.length,
+                    state = [1732584193, -271733879, -1732584194, 271733878],
+                    i;
+                for (i = 64; i <= s.length; i += 64) {
+                    md5cycle(state, md5blk(s.substring(i - 64, i)));
+                }
+                s = s.substring(i - 64);
+                var tail = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                for (i = 0; i < s.length; i++)
+                    tail[i >> 2] |= s.charCodeAt(i) << ((i % 4) << 3);
+                tail[i >> 2] |= 0x80 << ((i % 4) << 3);
+                if (i > 55) {
+                    md5cycle(state, tail);
+                    for (i = 0; i < 16; i++) tail[i] = 0;
+                }
+                tail[14] = n * 8;
+                md5cycle(state, tail);
+                return state;
+            }
+
+            function add32(a, b) {
+                return (a + b) & 0xFFFFFFFF;
+            }
+
+            if (md5('hello') != '5d41402abc4b2a76b9719d911017c592') {
+                function add32(x, y) {
+                    var lsw = (x & 0xFFFF) + (y & 0xFFFF),
+                        msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+                    return (msw << 16) | (lsw & 0xFFFF);
+                }
+            }
+
+            return md5(encodeUTF8(string));
+        }
+    });
+</script>
+</body>
+</html>
