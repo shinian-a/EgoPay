@@ -56,13 +56,15 @@ public class AdminController {
         node = new HashMap<>();
         node.put("name","添加");
         node.put("type","url");
-        node.put("url","admin/addwxqrcode.html?t="+new Date().getTime());
+        node.put("url","admin/addqrcode.html?t="+new Date().getTime());
+        node.put("qrType",1);
         menu1.add(node);
 
         node = new HashMap<>();
         node.put("name","管理");
         node.put("type","url");
-        node.put("url","admin/wxqrcodelist.html?t="+new Date().getTime());
+        node.put("url","admin/qrcodelist.html?t="+new Date().getTime());
+        node.put("qrType",1);
         menu1.add(node);
 
         node = new HashMap<>();
@@ -77,13 +79,15 @@ public class AdminController {
         node = new HashMap<>();
         node.put("name","添加");
         node.put("type","url");
-        node.put("url","admin/addzfbqrcode.html?t="+new Date().getTime());
+        node.put("url","admin/addqrcode.html?t="+new Date().getTime());
+        node.put("qrType",2);
         menu2.add(node);
 
         node = new HashMap<>();
         node.put("name","管理");
         node.put("type","url");
-        node.put("url","admin/zfbqrcodelist.html?t="+new Date().getTime());
+        node.put("url","admin/qrcodelist.html?t="+new Date().getTime());
+        node.put("qrType",2);
         menu2.add(node);
 
         node = new HashMap<>();

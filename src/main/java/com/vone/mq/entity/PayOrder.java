@@ -1,5 +1,6 @@
 package com.vone.mq.entity;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -32,6 +33,7 @@ public class PayOrder {
      * 用于在支付系统中唯一标识一笔交易
      * </p>
      */
+    @Column(unique = true)
     private String orderId;
 
     /**
@@ -41,6 +43,7 @@ public class PayOrder {
      * 该号码会在异步通知和同步跳转时原样返回给商户
      * </p>
      */
+    @Column(unique = true)
     private String payId;
 
 

@@ -1,19 +1,27 @@
 package com.vone.mq.controller;
 
 import com.google.gson.Gson;
-import com.google.zxing.*;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.Result;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.vone.mq.dao.PayOrderDao;
 import com.vone.mq.dao.SettingDao;
 import com.vone.mq.dto.CommonRes;
 import com.vone.mq.dto.CreateOrderRes;
 import com.vone.mq.entity.PayOrder;
-import com.vone.mq.dao.PayOrderDao;
 import com.vone.mq.service.WebService;
+import com.vone.mq.utils.EpaySignUtil;
+import com.vone.mq.utils.PayUtils;
 import com.vone.mq.utils.ResUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,8 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -34,6 +42,7 @@ import java.util.Map;
 
 @RestController
 public class WebController {
+    private static final Logger log = LoggerFactory.getLogger(WebController.class);
     private static final String KEY_CONFIG = "key";
     private static final String ERROR_SIGN = "error_sign";
     private static final String ERROR_RESPONSE = "error";
@@ -58,7 +67,7 @@ public class WebController {
                 resp.setContentType("image/png");
                 MatrixToImageWriter.writeToStream(m, "png", stream);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("生成二维码失败, url={}", url, e);
             } finally {
                 if (stream != null) {
                     stream.flush();
@@ -70,47 +79,47 @@ public class WebController {
 
     @RequestMapping("/deQrcode")
     public CommonRes deQrcode(String base64) {
-        if (base64 != null && !"".equals(base64)) {
-            try {
-                MultiFormatReader multiFormatReader = new MultiFormatReader();
-                byte[] bytes1 = Base64.getDecoder().decode(base64);
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes1);
-                BufferedImage image = ImageIO.read(bais);
-                //定义二维码参数
-                Map hints = new HashMap();
-                hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
-                //获取读取二维码结果
-                BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)));
-                Result result = multiFormatReader.decode(binaryBitmap, hints);
-                return ResUtil.success(result.getText());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (base64 == null || base64.isEmpty()) {
+            return ResUtil.error();
         }
-        return ResUtil.error();
+        try {
+            return decodeQrcode(Base64.getDecoder().decode(base64));
+        } catch (Exception e) {
+            log.warn("base64 二维码识别失败: {}", e.getMessage());
+            return ResUtil.error("二维码识别失败");
+        }
     }
 
     @RequestMapping("/deQrcode2")
     public CommonRes deQrcode2(@RequestParam("file") MultipartFile file) {
-        if (file != null) {
-            try {
-                MultiFormatReader multiFormatReader = new MultiFormatReader();
-                byte[] bytes1 = file.getBytes();
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes1);
-                BufferedImage image = ImageIO.read(bais);
-                //定义二维码参数
-                Map hints = new HashMap();
-                hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
-                //获取读取二维码结果
-                BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)));
-                Result result = multiFormatReader.decode(binaryBitmap, hints);
-
-                return ResUtil.success(result.getText());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (file == null || file.isEmpty()) {
+            return ResUtil.error();
         }
-        return ResUtil.error();
+        try {
+            return decodeQrcode(file.getBytes());
+        } catch (Exception e) {
+            log.warn("上传二维码识别失败: {}", e.getMessage());
+            return ResUtil.error("二维码识别失败");
+        }
+    }
+
+    /**
+     * 从图片字节中解析二维码内容（base64 与文件上传两条入口的公共逻辑）。
+     */
+    private CommonRes decodeQrcode(byte[] imageBytes) throws Exception {
+        MultiFormatReader multiFormatReader = new MultiFormatReader();
+        ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
+        BufferedImage image = ImageIO.read(bais);
+        if (image == null) {
+            return ResUtil.error("图片格式不支持");
+        }
+        //定义二维码参数
+        Map<com.google.zxing.DecodeHintType, Object> hints = new HashMap<>();
+        hints.put(com.google.zxing.DecodeHintType.CHARACTER_SET, "utf-8");
+        //获取读取二维码结果
+        BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)));
+        Result result = multiFormatReader.decode(binaryBitmap, hints);
+        return ResUtil.success(result.getText());
     }
 
     /**
@@ -139,7 +148,7 @@ public class WebController {
                 if (!settingDao.findById("pid").map(setting -> setting.getVvalue())
                         .map(configuredPid -> configuredPid.equals(pid)).orElse(false)
                         || !"TRADE_SUCCESS".equalsIgnoreCase(trade_status)
-                        || !verifyEpayCallbackSign(request, sign, key)) {
+                        || !EpaySignUtil.verify(EpaySignUtil.paramsFromRequest(request), sign, key)) {
                     return ERROR_RESPONSE;
                 }
 
@@ -150,7 +159,7 @@ public class WebController {
                 }
             } else {
                 PayOrder order = payOrderDao.findByPayId(payId);
-                String expectedSign = WebService.md5(nullToEmpty(payId) + nullToEmpty(param)
+                String expectedSign = PayUtils.md5(nullToEmpty(payId) + nullToEmpty(param)
                         + nullToEmpty(type) + nullToEmpty(price) + nullToEmpty(reallyPrice) + key);
                 if (order == null || payId == null || !payId.equals(order.getPayId())
                         || !decimalEquals(price, order.getPrice())
@@ -163,7 +172,7 @@ public class WebController {
 
             return "success";
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("支付结果回调处理异常", e);
             return ERROR_RESPONSE;
         }
     }
@@ -184,37 +193,6 @@ public class WebController {
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
-    }
-
-    private boolean verifyEpayCallbackSign(HttpServletRequest request, String sign, String key) {
-        if (sign == null || sign.isEmpty() || key == null || key.isEmpty()) {
-            return false;
-        }
-
-        Map<String, String> params = new HashMap<>();
-        java.util.Enumeration<String> names = request.getParameterNames();
-        while (names.hasMoreElements()) {
-            String name = names.nextElement();
-            if ("sign".equals(name) || "sign_type".equals(name)) {
-                continue;
-            }
-            String value = request.getParameter(name);
-            if (value != null && !value.isEmpty()) {
-                params.put(name, value);
-            }
-        }
-
-        java.util.List<String> namesInOrder = new java.util.ArrayList<>(params.keySet());
-        java.util.Collections.sort(namesInOrder);
-        StringBuilder content = new StringBuilder();
-        for (String name : namesInOrder) {
-            if (content.length() > 0) {
-                content.append("&");
-            }
-            content.append(name).append("=").append(params.get(name));
-        }
-
-        return WebService.md5(content + key).equalsIgnoreCase(sign);
     }
 
     /**
@@ -271,8 +249,7 @@ public class WebController {
                 .map(setting -> setting.getVvalue()).orElse("");
         CommonRes commonRes = webService.createOrder(payId, param, type, price, notifyUrl, returnUrl, sign);
         if (isHtml == 0) {
-            String res = new Gson().toJson(commonRes);
-            return res;
+            return new Gson().toJson(commonRes);
         } else {
             CreateOrderRes c = (CreateOrderRes) commonRes.getData();
             if (c == null) {

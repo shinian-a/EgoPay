@@ -27,8 +27,8 @@
 | Spring MVC | `spring-boot-starter-web` |
 | Spring Data JPA | `spring-boot-starter-data-jpa` |
 | 数据库 | H2 |
-| 构建工具 | Maven |
-| 发布格式 | WAR |
+| 构建工具 | Maven/IDEA |
+| 发布格式 | 可执行 WAR |
 
 ## 环境要求
 
@@ -50,7 +50,7 @@ mvn spring-boot:run
 
 ```bash
 mvn clean package
-java -jar target/mq-0.0.1-SNAPSHOT.war
+java -jar target/mq-0.0.1-SNAPSHOT.jar
 ```
 
 启动后访问：
@@ -62,7 +62,7 @@ http://localhost:8081/
 也可以通过启动参数修改端口：
 
 ```bash
-java -jar target/mq-0.0.1-SNAPSHOT.war --server.port=9090
+java -jar target/mq-0.0.1-SNAPSHOT.jar --server.port=9090
 ```
 
 ## 默认配置

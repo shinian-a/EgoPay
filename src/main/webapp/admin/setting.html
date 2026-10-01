@@ -7,7 +7,6 @@
 </style>
 
 <div class="layui-form" action="">
-
     <div class="layui-form-item">
         <label class="layui-form-label">后台账号</label>
         <div class="layui-input-block">
@@ -26,44 +25,37 @@
             <input type="text" id="pid" placeholder="请输入易支付商户ID" autocomplete="off" class="layui-input">
         </div>
     </div>
-
     <div class="layui-form-item">
         <label class="layui-form-label">订单有效期</label>
         <div class="layui-input-block">
             <input type="number" id="close" lay-verify="required" placeholder="请输入创建的订单几分钟后失效" autocomplete="off" class="layui-input">
         </div>
     </div>
-
     <div class="layui-form-item">
         <label class="layui-form-label">异步回调</label>
         <div class="layui-input-block">
             <input type="text" id="notifyUrl" lay-verify="required" placeholder="请输入异步回调地址" autocomplete="off" class="layui-input">
         </div>
     </div>
-
     <div class="layui-form-item">
         <label class="layui-form-label">同步回调</label>
         <div class="layui-input-block">
             <input type="text" id="returnUrl" lay-verify="required" placeholder="请输入支付完成后跳转地址" autocomplete="off" class="layui-input">
         </div>
     </div>
-
     <div class="layui-form-item">
         <label class="layui-form-label">通讯密钥</label>
         <div class="layui-input-block">
             <input type="text" id="key" lay-verify="required" placeholder="请输入通讯密钥" autocomplete="off" class="layui-input">
         </div>
     </div>
-
     <div class="layui-form-item">
         <label class="layui-form-label">区分方式</label>
         <div class="layui-input-block">
-            <div class="layui-upload">
-                <select id="payQf">
-                    <option value="1">金额递增</option>
-                    <option value="2">金额递减</option>
-                </select>
-            </div>
+            <select id="payQf">
+                <option value="1">金额递增</option>
+                <option value="2">金额递减</option>
+            </select>
         </div>
     </div>
 
@@ -92,99 +84,60 @@
         </div>
     </div>
 
-
-
     <div class="layui-form-item" style="text-align: right;">
         <button class="layui-btn" onclick="save()">保存</button>
     </div>
-
-
-
-    <!--<div class="layui-form-item layui-form-text">-->
-        <!--<label class="layui-form-label">设置进入网站的提示</label>-->
-        <!--<div class="layui-input-block">-->
-            <!--<textarea placeholder="请输入公告内容" id="xz" class="layui-textarea"></textarea>-->
-        <!--</div>-->
-    <!--</div>-->
-    <!--<div class="layui-form-item">-->
-        <!--<button class="layui-btn" onclick="editxz()">保存</button>-->
-    <!--</div>-->
 </div>
 
-
-
 <script>
-    function formatDate(now) {
-        now = new Date(now*1000);
-        return now.getFullYear()
-            + "-" + (now.getMonth()>8?(now.getMonth()+1):"0"+(now.getMonth()+1))
-            + "-" + (now.getDate()>9?now.getDate():"0"+now.getDate())
-            + " " + (now.getHours()>9?now.getHours():"0"+now.getHours())
-            + ":" + (now.getMinutes()>9?now.getMinutes():"0"+now.getMinutes())
-            + ":" + (now.getSeconds()>9?now.getSeconds():"0"+now.getSeconds());
+    // ✅ 核心修复：用独立变量存储原始解码结果，与 img src 彻底解耦
+    var wxRawData = "";
+    var zfbRawData = "";
 
-    }
-    layui.use(['form','layer','upload'], function(){
-        var table = layui.table,form = layui.form,upload = layui.upload;
+    layui.use(['form', 'layer', 'upload'], function () {
+        var form = layui.form, upload = layui.upload;
 
-        var uploadInst = upload.render({
-            elem: '#wxup'
-            , url: 'deQrcode2'
-            , before: function (obj) {
-
-            }
-            , done: function (res) {
-                //如果上传失败
-                if (res.code == -1) {
-                    return layer.msg('上传失败');
-                }
-                if (res.data==""){
-                    return layer.msg('请上传微信无金额收款二维码');
-                }
-                $('#wximg').attr('src', "enQrcode?url="+encodeURIComponent(res.data));
+        // 微信二维码上传
+        upload.render({
+            elem: '#wxup',
+            url: 'deQrcode2',
+            done: function (res) {
+                if (res.code == -1) return layer.msg('上传失败');
+                if (!res.data) return layer.msg('请上传微信无金额收款二维码');
+                // ✅ 原始纯文本存入变量
+                wxRawData = res.data;
+                // ✅ 仅用于预览展示，encodeURIComponent 只影响显示不影响数据
+                $('#wximg').attr('src', 'enQrcode?url=' + encodeURIComponent(res.data));
                 $('#wximg').show();
-            }
-            , error: function () {
-                //演示失败状态，并实现重传
+            },
+            error: function () {
                 var demoText = $('#wxcs');
                 demoText.html('<span style="color: #FF5722;">上传失败</span> <a class="layui-btn layui-btn-xs wxcs">重试</a>');
-                demoText.find('.wxcs').on('click', function () {
-                    uploadInst.upload();
-                });
+                demoText.find('.wxcs').on('click', function () { uploadInst.upload(); });
             }
         });
 
-        var uploadInst2 = upload.render({
-            elem: '#zfbup'
-            , url: 'deQrcode2'
-            , before: function (obj) {
-
-            }
-            , done: function (res) {
-                //如果上传失败
-                if (res.code == -1) {
-                    return layer.msg('上传失败');
-                }
-                if (res.data=="" ){
-                    return layer.msg('请上传支付宝无金额收款二维码');
-                }
-                $('#zfbimg').attr('src', "enQrcode?url="+encodeURIComponent(res.data));
+        // 支付宝二维码上传
+        upload.render({
+            elem: '#zfbup',
+            url: 'deQrcode2',
+            done: function (res) {
+                if (res.code == -1) return layer.msg('上传失败');
+                if (!res.data) return layer.msg('请上传支付宝无金额收款二维码');
+                // ✅ 原始纯文本存入变量
+                zfbRawData = res.data;
+                $('#zfbimg').attr('src', 'enQrcode?url=' + encodeURIComponent(res.data));
                 $('#zfbimg').show();
-            }
-            , error: function () {
-                //演示失败状态，并实现重传
+            },
+            error: function () {
                 var demoText = $('#zfbcs');
                 demoText.html('<span style="color: #FF5722;">上传失败</span> <a class="layui-btn layui-btn-xs zfbcs">重试</a>');
-                demoText.find('.zfbcs').on('click', function () {
-                    uploadInst2.upload();
-                });
+                demoText.find('.zfbcs').on('click', function () { uploadInst2.upload(); });
             }
         });
+
         form.render();
-
     });
-
-
 
     function save() {
         var user = $("#user").val();
@@ -195,90 +148,60 @@
         var key = $("#key").val();
         var close = $("#close").val();
         var payQf = $("#payQf").val();
-        if (user == ""){
-            layer.msg("请输入管理员账号");
-            return;
-        }
-        if (pass == ""){
-            layer.msg("请输入管理员密码");
-            return;
-        }
-        if (key == ""){
-            layer.msg("请输入通讯密钥");
-            return;
-        }
-        if (notifyUrl == ""){
-            layer.msg("请输入异步回调地址");
-            return;
-        }
-        if (returnUrl == ""){
-            layer.msg("请输入支付完成后跳转地址");
-            return;
-        }
 
-        if (close == ""){
-            layer.msg("请输入创建的订单几分钟后失效");
-            return;
-        }
-        var wximg = $("#wximg").attr("src");
-        if (wximg=="" || !wximg){
-            layer.msg("请上传微信无金额的收款二维码");
-            return;
-        }
-        var zfbimg = $("#zfbimg").attr("src");
-        if (zfbimg=="" || !zfbimg){
-            layer.msg("请上传支付宝无金额的收款二维码");
-            return;
-        }
-        wximg = wximg.replace(/enQrcode\?url=/g,"");
-        zfbimg = zfbimg.replace(/enQrcode\?url=/g,"");
-        $.post("/admin/saveSetting","user="+encodeURIComponent(user)+"&pass="+encodeURIComponent(pass)+"&pid="+encodeURIComponent(pid)+"&notifyUrl="+encodeURIComponent(notifyUrl)+"&returnUrl="+encodeURIComponent(returnUrl)+"&key="+encodeURIComponent(key)+"&wxpay="+encodeURIComponent(wximg)+"&zfbpay="+encodeURIComponent(zfbimg)+"&close="+encodeURIComponent(close)+"&payQf="+encodeURIComponent(payQf),function (data) {
-            if (data.code==1){
-                $.post("/admin/getSettings",function (data) {
-                    console.log(data);
-                    if (data.code==1){
-                        $("#user").val(data.data.user);
-                        $("#pass").val(data.data.pass);
-                        $("#pid").val(data.data.pid);
-                        $("#notifyUrl").val(data.data.notifyUrl);
-                        $("#returnUrl").val(data.data.returnUrl);
-                        $("#key").val(data.data.key);
-                        $("#close").val(data.data.close);
-                        if (data.data.wxpay!=""){
-                            $('#wximg').attr('src', "enQrcode?url="+encodeURIComponent(data.data.wxpay));
-                            $('#wximg').show();
-                        }
-                        if (data.data.zfbpay!=""){
-                            $('#zfbimg').attr('src', "enQrcode?url="+encodeURIComponent(data.data.zfbpay));
-                            $('#zfbimg').show();
-                        }
-                    }
-                });
-            }
+        if (!user) return layer.msg("请输入管理员账号");
+        if (!pass) return layer.msg("请输入管理员密码");
+        if (!key) return layer.msg("请输入通讯密钥");
+        if (!notifyUrl) return layer.msg("请输入异步回调地址");
+        if (!returnUrl) return layer.msg("请输入支付完成后跳转地址");
+        if (!close) return layer.msg("请输入创建的订单几分钟后失效");
+
+        // ✅ 直接使用变量中的原始纯文本，不再从 img src 中提取
+        if (!wxRawData) return layer.msg("请上传微信无金额的收款二维码");
+        if (!zfbRawData) return layer.msg("请上传支付宝无金额的收款二维码");
+
+        $.post("/admin/saveSetting", {
+            user: user, pass: pass, pid: pid,
+            notifyUrl: notifyUrl, returnUrl: returnUrl, key: key,
+            wxpay: wxRawData,     // ✅ 干净的原始链接，无编码污染
+            zfbpay: zfbRawData,   // ✅ 干净的原始链接，无编码污染
+            close: close, payQf: payQf
+        }, function (data) {
             layer.msg(data.msg);
+            if (data.code == 1) loadSettings();
         });
     }
 
-    $.post("/admin/getSettings",function (data) {
-        console.log(data);
-        if (data.code==1){
-            $("#user").val(data.data.user);
-            $("#pass").val(data.data.pass);
-            $("#pid").val(data.data.pid);
-            $("#notifyUrl").val(data.data.notifyUrl);
-            $("#returnUrl").val(data.data.returnUrl);
-            $("#key").val(data.data.key);
-            $("#close").val(data.data.close);
-            $("#payQf").val(data.data.payQf);
-            if (data.data.wxpay!=""){
-                $('#wximg').attr('src', "enQrcode?url="+encodeURIComponent(data.data.wxpay));
-                $('#wximg').show();
+    // 页面加载时获取配置
+    function loadSettings() {
+        $.post("/admin/getSettings", function (data) {
+            if (data.code == 1) {
+                var d = data.data;
+                $("#user").val(d.user);
+                $("#pass").val(d.pass);
+                $("#pid").val(d.pid);
+                $("#notifyUrl").val(d.notifyUrl);
+                $("#returnUrl").val(d.returnUrl);
+                $("#key").val(d.key);
+                $("#close").val(d.close);
+                $("#payQf").val(d.payQf);
+
+                // ✅ 回显时：原始数据存变量，encode 仅用于预览
+                if (d.wxpay) {
+                    wxRawData = d.wxpay;
+                    $('#wximg').attr('src', 'enQrcode?url=' + encodeURIComponent(d.wxpay));
+                    $('#wximg').show();
+                }
+                if (d.zfbpay) {
+                    zfbRawData = d.zfbpay;
+                    $('#zfbimg').attr('src', 'enQrcode?url=' + encodeURIComponent(d.zfbpay));
+                    $('#zfbimg').show();
+                }
+                layui.form.render();
             }
-            if (data.data.zfbpay!=""){
-                $('#zfbimg').attr('src', "enQrcode?url="+encodeURIComponent(data.data.zfbpay));
-                $('#zfbimg').show();
-            }
-            layui.form.render();
-        }
-    });
+        });
+    }
+
+    // 初始化加载
+    loadSettings();
 </script>

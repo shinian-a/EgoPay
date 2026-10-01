@@ -11,24 +11,28 @@ import com.vone.mq.entity.PayQrcode;
 import com.vone.mq.entity.Setting;
 import com.vone.mq.utils.Arith;
 import com.vone.mq.utils.HttpRequest;
+import com.vone.mq.utils.PayUtils;
 import com.vone.mq.utils.ResUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.text.NumberFormat;
-import java.util.*;
-
-
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.util.DigestUtils;
-import org.springframework.util.StringUtils;
-
-import javax.persistence.criteria.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AdminService {
@@ -41,6 +45,9 @@ public class AdminService {
     private TmpPriceDao tmpPriceDao;
     @Autowired
     private PayQrcodeDao payQrcodeDao;
+    @Autowired
+    private WebService webService;
+
     public CommonRes login(String user,String pass){
         String configuredUser = settingDao.findById("user").map(Setting::getVvalue).orElse(null);
         String configuredPass = settingDao.findById("pass").map(Setting::getVvalue).orElse(null);
@@ -49,6 +56,12 @@ public class AdminService {
             return ResUtil.error("账号或密码不正确");
         }
 
+        // 默认弱口令提醒：仍为 admin/admin 时提示尽快修改
+        if ("admin".equals(user) && "admin".equals(pass)){
+            Map<String,Object> data = new HashMap<>();
+            data.put("weakPassword", true);
+            return ResUtil.success(data);
+        }
         return ResUtil.success();
     }
     public CommonRes saveSetting(String user,String pass,String pid,String notifyUrl,String returnUrl,String key,String wxpay,String zfbpay,String close,String payQf){
@@ -145,9 +158,27 @@ public class AdminService {
         if (key == null || key.isEmpty()) {
             return ResUtil.error("系统通讯密钥未配置");
         }
-        String p = "payId="+payOrder.getPayId()+"&param="+payOrder.getParam()+"&type="+payOrder.getType()+"&price="+payOrder.getPrice()+"&reallyPrice="+payOrder.getReallyPrice();
-        String sign = payOrder.getPayId()+payOrder.getParam()+payOrder.getType()+payOrder.getPrice()+payOrder.getReallyPrice()+key;
-        p = p+"&sign="+md5(sign);
+        String p;
+        if (payOrder.isEpayOrder()){
+            // 易支付订单：按标准易支付规范组装异步通知参数（pid/trade_no/out_trade_no/type/name/money/trade_status 等）并 MD5 签名
+            String pid = settingDao.findById("pid").map(Setting::getVvalue).orElse(null);
+            if (pid == null || pid.isEmpty()){
+                return ResUtil.error("商户ID未配置");
+            }
+            p = webService.buildEpayNotifyQuery(payOrder, key);
+        }else{
+            // 微免签订单：按系统原生规范组装异步通知参数并签名（值做 URL 编码，签名仍基于原始值）
+            StringBuilder builder = new StringBuilder();
+            builder.append("payId=").append(PayUtils.encode(payOrder.getPayId()))
+                    .append("&param=").append(PayUtils.encode(payOrder.getParam()))
+                    .append("&type=").append(payOrder.getType())
+                    .append("&price=").append(PayUtils.encode(String.valueOf(payOrder.getPrice())))
+                    .append("&reallyPrice=").append(PayUtils.encode(String.valueOf(payOrder.getReallyPrice())));
+            String sign = payOrder.getPayId()+payOrder.getParam()+payOrder.getType()
+                    +payOrder.getPrice()+payOrder.getReallyPrice()+key;
+            builder.append("&sign=").append(PayUtils.md5(sign));
+            p = builder.toString();
+        }
 
         String url = payOrder.getNotifyUrl();
         if (url==null || url.equals("")){
@@ -159,17 +190,19 @@ public class AdminService {
 
         String res = HttpRequest.sendGet(url,p);
 
-        if (res!=null && res.equals("success")){
+        if (res!=null && "success".equalsIgnoreCase(res.trim())){
             if (payOrder.getState()==0){
-                tmpPriceDao.delprice(priceKey(payOrder.getType(), payOrder.getReallyPrice()));
+                tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
             }
             payOrderDao.setState(1,payOrder.getId());
             return ResUtil.success();
         }else{
-            return ResUtil.error(-2,res);
+            return ResUtil.error(-2, res == null ? "通知地址无响应" : res);
         }
 
     }
+
+
 
     public CommonRes addPayQrcode(PayQrcode payQrcode){
         if (payQrcode.getPayUrl()==null){
@@ -296,14 +329,14 @@ public class AdminService {
             return ResUtil.error("订单不存在");
         }
         if (payOrder.getState()==0){
-            tmpPriceDao.delprice(priceKey(payOrder.getType(), payOrder.getReallyPrice()));
+            tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
         }
         payOrderDao.deleteById(id);
         return ResUtil.success();
     }
     public CommonRes delGqOrder(){
         for (PayOrder payOrder : payOrderDao.findAllByState(-1)) {
-            tmpPriceDao.delprice(priceKey(payOrder.getType(), payOrder.getReallyPrice()));
+            tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
         }
         payOrderDao.deleteByState(-1);
         return ResUtil.success();
@@ -313,22 +346,10 @@ public class AdminService {
         long threshold = new Date().getTime()-7*86400*1000;
         for (PayOrder payOrder : payOrderDao.findAllByCreateDateBefore(threshold)) {
             if (payOrder.getState() == 0) {
-                tmpPriceDao.delprice(priceKey(payOrder.getType(), payOrder.getReallyPrice()));
+                tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
             }
         }
         payOrderDao.deleteByAfterCreateDate(String.valueOf(threshold));
         return ResUtil.success();
-    }
-
-
-    public static String md5(String text) {
-        //加密后的字符串
-        String encodeStr= DigestUtils.md5DigestAsHex(text.getBytes());
-        return encodeStr;
-    }
-
-    private static String priceKey(int type, double price) {
-        return type + "-" + java.math.BigDecimal.valueOf(price)
-                .stripTrailingZeros().toPlainString();
     }
 }

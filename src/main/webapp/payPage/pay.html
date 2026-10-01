@@ -43,10 +43,10 @@
                     <div style="position: relative;display: inline-block;">
                         <img id='show_qrcode' alt="加载中..." :src="'/enQrcode?url='+payUrl"
                              width="210" height="210" style="display: block;">
-                        <img onclick="$('#use').hide()" id="use" src="use_1.png" v-if="payType==1"
+                        <img onclick="$('.qrcode-guide').hide()" src="use_1.png" v-if="payType==1"
                              class="qrcode-guide"
                              style="position: absolute;top: 50%;left: 50%;width:32px;height:32px;margin-left: -16px;margin-top: -16px">
-                        <img onclick="$('#use').hide()" id="use" src="use_2.png" v-if="payType==2"
+                        <img onclick="$('.qrcode-guide').hide()" src="use_2.png" v-if="payType==2"
                              class="qrcode-guide"
                              style="position: absolute;top: 50%;left: 50%;width:32px;height:32px;margin-left: -16px;margin-top: -16px">
                     </div>
@@ -129,8 +129,9 @@
 <div class="copyRight">
 
 </div>
-<script src="https://lib.baomitu.com/jquery/3.3.1/jquery.min.js"></script>
-<script src="https://lib.baomitu.com/vue/2.5.21/vue.min.js"></script>
+<script src="../lib/jquery.min.js"></script>
+<script src="../lib/vue.min.js"></script>
+<script src="../js/admin-common.js"></script>
 
 <script>
 
@@ -145,66 +146,37 @@
             });
         }
     }
-    function formatDate(now) {
-        now = new Date(now)
-        return now.getFullYear()
-            + "-" + (now.getMonth()>8?(now.getMonth()+1):"0"+(now.getMonth()+1))
-            + "-" + (now.getDate()>9?now.getDate():"0"+now.getDate())
-            + " " + (now.getHours()>9?now.getHours():"0"+now.getHours())
-            + ":" + (now.getMinutes()>9?now.getMinutes():"0"+now.getMinutes())
-            + ":" + (now.getSeconds()>9?now.getSeconds():"0"+now.getSeconds());
 
-    }
     var myTimer;
     function timer(intDiff) {
-        var i = 0;
-        i++;
-        var day = 0,
-            hour = 0,
-            minute = 0,
-            second = 0;//时间默认值
-        if (intDiff > 0) {
-            day = Math.floor(intDiff / (60 * 60 * 24));
-            hour = Math.floor(intDiff / (60 * 60)) - (day * 24);
-            minute = Math.floor(intDiff / 60) - (day * 24 * 60) - (hour * 60);
-            second = Math.floor(intDiff) - (day * 24 * 60 * 60) - (hour * 60 * 60) - (minute * 60);
-        }
-        if (minute <= 9) minute = '0' + minute;
-        if (second <= 9) second = '0' + second;
-        $('#hour_show').html('<s id="h"></s>' + hour + '时');
-        $('#minute_show').html('<s></s>' + minute + '分');
-        $('#second_show').html('<s></s>' + second + '秒');
-        if (hour <= 0 && minute <= 0 && second <= 0) {
-            qrcode_timeout()
-            clearInterval(myTimer);
+        var remaining = Math.floor(intDiff);
 
-        }
-        intDiff--;
-
-        myTimer = window.setInterval(function () {
-            i++;
-            var day = 0,
-                hour = 0,
-                minute = 0,
-                second = 0;//时间默认值
-            if (intDiff > 0) {
-                day = Math.floor(intDiff / (60 * 60 * 24));
-                hour = Math.floor(intDiff / (60 * 60)) - (day * 24);
-                minute = Math.floor(intDiff / 60) - (day * 24 * 60) - (hour * 60);
-                second = Math.floor(intDiff) - (day * 24 * 60 * 60) - (hour * 60 * 60) - (minute * 60);
+        function tick() {
+            var day = 0, hour = 0, minute = 0, second = 0;//时间默认值
+            if (remaining > 0) {
+                day = Math.floor(remaining / (60 * 60 * 24));
+                hour = Math.floor(remaining / (60 * 60)) - (day * 24);
+                minute = Math.floor(remaining / 60) - (day * 24 * 60) - (hour * 60);
+                second = Math.floor(remaining) - (day * 24 * 60 * 60) - (hour * 60 * 60) - (minute * 60);
             }
-            if (minute <= 9) minute = '0' + minute;
-            if (second <= 9) second = '0' + second;
-            $('#hour_show').html('<s id="h"></s>' + hour + '时');
-            $('#minute_show').html('<s></s>' + minute + '分');
-            $('#second_show').html('<s></s>' + second + '秒');
             if (hour <= 0 && minute <= 0 && second <= 0) {
-                qrcode_timeout()
+                $('#hour_show').html('<s id="h"></s>0时');
+                $('#minute_show').html('<s></s>00分');
+                $('#second_show').html('<s></s>00秒');
+                qrcode_timeout();
                 clearInterval(myTimer);
-
+                return;
             }
-            intDiff--;
-        }, 1000);
+            var minuteStr = minute <= 9 ? '0' + minute : minute;
+            var secondStr = second <= 9 ? '0' + second : second;
+            $('#hour_show').html('<s id="h"></s>' + hour + '时');
+            $('#minute_show').html('<s></s>' + minuteStr + '分');
+            $('#second_show').html('<s></s>' + secondStr + '秒');
+            remaining--;
+        }
+
+        tick();
+        myTimer = window.setInterval(tick, 1000);
     }
 
 
@@ -258,9 +230,9 @@
                 window.location.href = data.data;
             } else{
                 if (data.data == "订单已过期") {
-                    intDiff = 0;
+                    // 停止轮询，等待倒计时结束后展示过期提示
                 }else{
-                    setTimeout("check()",1500);
+                    setTimeout(check,1500);
                 }
             }
         })

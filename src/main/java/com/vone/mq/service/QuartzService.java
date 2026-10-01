@@ -5,6 +5,9 @@ import com.vone.mq.dao.SettingDao;
 import com.vone.mq.dao.TmpPriceDao;
 import com.vone.mq.entity.PayOrder;
 import com.vone.mq.entity.Setting;
+import com.vone.mq.utils.PayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,6 +22,9 @@ import java.util.Optional;
  */
 @Component
 public class QuartzService {
+
+    private static final Logger log = LoggerFactory.getLogger(QuartzService.class);
+
     @Autowired
     private SettingDao settingDao;
     @Autowired
@@ -30,14 +36,10 @@ public class QuartzService {
     @Scheduled(fixedRate = 30000)
     public void timerToZZP(){
         try {
-
             // 清理过期超时订单
-            System.out.println("开始清理过期订单...");
-
-            // 修复Optional空指针异常
             Optional<Setting> closeSetting = settingDao.findById("close");
             if (!closeSetting.isPresent()) {
-                System.out.println("未找到'close'设置，跳过清理过期订单");
+                log.debug("未找到 close 设置，跳过过期订单清理");
                 return;
             }
 
@@ -49,26 +51,25 @@ public class QuartzService {
 
             List<PayOrder> payOrders = payOrderDao.findAllByCloseDate(Long.valueOf(closeTime));
             for (PayOrder payOrder: payOrders) {
-                tmpPriceDao.delprice(payOrder.getType()+"-"+payOrder.getReallyPrice());
+                tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
             }
-            System.out.println("成功清理" + row + "个订单");
+            log.debug("成功清理 {} 个过期订单", row);
         }catch (Exception e){
-            e.printStackTrace();
+            log.error("清理过期订单异常", e);
         }
         // 监控端状态和最后心跳
         try {
-            // 修复Optional空指针异常
             Optional<Setting> heartSetting = settingDao.findById("lastheart");
             Optional<Setting> stateSetting = settingDao.findById("jkstate");
-            
+
             if (!heartSetting.isPresent() || !stateSetting.isPresent()) {
-                System.out.println("未找到心跳或状态设置");
+                log.debug("未找到心跳或状态设置");
                 return;
             }
-            
+
             String lastheart = heartSetting.get().getVvalue();
             String state = stateSetting.get().getVvalue();
-            
+
             if (state.equals("1") && new Date().getTime() - Long.parseLong(lastheart) > 60*1000){
                 Setting setting = new Setting();
                 setting.setVkey("jkstate");
@@ -76,7 +77,7 @@ public class QuartzService {
                 settingDao.save(setting);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("监控端心跳状态处理异常", e);
         }
     }
 }

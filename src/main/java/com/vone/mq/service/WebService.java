@@ -10,16 +10,17 @@ import com.vone.mq.entity.PayOrder;
 import com.vone.mq.entity.PayQrcode;
 import com.vone.mq.entity.Setting;
 import com.vone.mq.utils.Arith;
+import com.vone.mq.utils.EpaySignUtil;
 import com.vone.mq.utils.HttpRequest;
+import com.vone.mq.utils.PayUtils;
 import com.vone.mq.utils.ResUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
-import java.text.SimpleDateFormat;
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,9 @@ import java.util.UUID;
 
 @Service
 public class WebService {
+
+    private static final Logger log = LoggerFactory.getLogger(WebService.class);
+
     @Autowired
     private SettingDao settingDao;
     @Autowired
@@ -58,7 +62,7 @@ public class WebService {
         if (key == null || key.isEmpty()) {
             return ResUtil.error("系统通讯密钥未配置");
         }
-        String jsSign =  md5(payId+param+type+price+key);
+        String jsSign =  PayUtils.md5(payId+param+type+price+key);
         if (!sign.equals(jsSign)){
             return ResUtil.error("签名校验不通过");
         }
@@ -100,21 +104,28 @@ public class WebService {
         int row = 0;
         int attempts = 0;
         while (row == 0 && attempts++ < 10000){
-            String priceKey = priceKey(type, reallyPrice);
+            String priceKey = PayUtils.priceKey(type, reallyPrice);
 
             // 临时占用记录可能因服务中断残留；只有未支付订单才真正占用金额。
             if (payOrderDao.findByReallyPriceAndStateAndType(reallyPrice, 0, type) == null) {
                 tmpPriceDao.delprice(priceKey);
             }
 
-            try {
-                row = tmpPriceDao.checkPrice(priceKey);
-                // 某些数据库驱动对 INSERT 的影响行数返回不可靠，确认记录已写入后保留原金额。
-                if (row == 0 && tmpPriceDao.existsById(priceKey)) {
-                    row = 1;
-                }
-            }catch (Exception e){
+            // 先判断占用键是否已存在，避免依赖唯一键冲突异常（异常开销大，还会写 H2 trace）
+            if (tmpPriceDao.existsById(priceKey)) {
+                // 该金额已被其他未支付订单占用，继续尝试下一金额
                 row = 0;
+            } else {
+                try {
+                    row = tmpPriceDao.checkPrice(priceKey);
+                    // 某些数据库驱动对 INSERT 的影响行数返回不可靠，确认记录已写入后保留原金额。
+                    if (row == 0 && tmpPriceDao.existsById(priceKey)) {
+                        row = 1;
+                    }
+                } catch (Exception e) {
+                    // 并发下可能被其他下单抢先占用：已存在则继续换金额，否则按占用失败处理避免无记录裸奔
+                    row = 0;
+                }
             }
 
             if (row == 0){
@@ -144,7 +155,7 @@ public class WebService {
         }
 
         if (payUrl == null || payUrl.isEmpty()){
-            tmpPriceDao.delprice(priceKey(type, reallyPrice));
+            tmpPriceDao.delprice(PayUtils.priceKey(type, reallyPrice));
             return ResUtil.error("请您先进入后台配置程序");
         }
 
@@ -183,12 +194,12 @@ public class WebService {
         try {
             timeOut = Integer.parseInt(settingValue("close"));
         } catch (Exception e) {
-            tmpPriceDao.delprice(priceKey(type, reallyPrice));
+            tmpPriceDao.delprice(PayUtils.priceKey(type, reallyPrice));
             payOrderDao.delete(payOrder);
             return ResUtil.error("订单有效期未正确配置");
         }
         if (timeOut <= 0) {
-            tmpPriceDao.delprice(priceKey(type, reallyPrice));
+            tmpPriceDao.delprice(PayUtils.priceKey(type, reallyPrice));
             payOrderDao.delete(payOrder);
             return ResUtil.error("订单有效期未正确配置");
         }
@@ -203,7 +214,7 @@ public class WebService {
         if (key == null || key.isEmpty()) {
             return ResUtil.error("系统通讯密钥未配置");
         }
-        String jsSign =  md5(orderId+key);
+        String jsSign =  PayUtils.md5(orderId+key);
         if (!sign.equals(jsSign)){
             return ResUtil.error("签名校验不通过");
         }
@@ -215,7 +226,7 @@ public class WebService {
         if (payOrder.getState()!=0){
             return ResUtil.error("订单状态不允许关闭");
         }
-        tmpPriceDao.delprice(priceKey(payOrder.getType(), payOrder.getReallyPrice()));
+        tmpPriceDao.delprice(PayUtils.priceKey(payOrder.getType(), payOrder.getReallyPrice()));
         payOrder.setCloseDate(new Date().getTime());
         payOrder.setState(-1);
         payOrderDao.save(payOrder);
@@ -228,7 +239,7 @@ public class WebService {
         if (key == null || key.isEmpty() || t == null || sign == null) {
             return ResUtil.error("参数不完整");
         }
-        String jssign = md5(t+key);
+        String jssign = PayUtils.md5(t+key);
         if (!jssign.equals(sign)){
             return ResUtil.error("签名校验错误");
         }
@@ -274,7 +285,7 @@ public class WebService {
             paymentTime = Long.parseLong(t);
             paymentPrice = Double.parseDouble(price);
         } catch (NumberFormatException e) {
-            return ResUtil.error("推送参数格式错误");
+            return ResUtil.error("推送参数模式错误");
         }
         if (!Double.isFinite(paymentPrice) || paymentPrice <= 0) {
             return ResUtil.error("支付金额错误");
@@ -287,7 +298,7 @@ public class WebService {
         if (cz>50*1000){
             return ResUtil.error("客户端时间错误");
         }
-        String jssign = md5(type+""+price+t+key);
+        String jssign = PayUtils.md5(type+""+price+t+key);
         if (!jssign.equals(sign)){
             return ResUtil.error("签名校验错误");
         }
@@ -299,7 +310,8 @@ public class WebService {
 
         PayOrder processedOrder = payOrderDao.findByPayDate(paymentTime);
         if (processedOrder != null) {
-            if ("无订单转账".equals(processedOrder.getPayId()) || processedOrder.getState() == 1) {
+            if (String.valueOf(processedOrder.getPayId()).startsWith("无订单转账")
+                    || processedOrder.getState() == 1) {
                 return ResUtil.success();
             }
             return notifyPaidOrder(processedOrder, key);
@@ -310,8 +322,10 @@ public class WebService {
         if (payOrder==null){
 
             payOrder = new PayOrder();
-            payOrder.setPayId("无订单转账");
-            payOrder.setOrderId("无订单转账");
+            // 无订单转账记录追加付款时间戳，保证商户号/云端单号唯一（兼容唯一约束）
+            String noOrderKey = "无订单转账" + paymentTime;
+            payOrder.setPayId(noOrderKey);
+            payOrder.setOrderId(noOrderKey);
             payOrder.setCreateDate(new Date().getTime());
             payOrder.setPayDate(new Date().getTime());
             payOrder.setCloseDate(new Date().getTime());
@@ -326,7 +340,7 @@ public class WebService {
             return ResUtil.success();
 
         }else{
-            tmpPriceDao.delprice(priceKey(type, paymentPrice));
+            tmpPriceDao.delprice(PayUtils.priceKey(type, paymentPrice));
 
             payOrder.setState(1);
             payOrder.setPayDate(paymentTime);
@@ -353,12 +367,12 @@ public class WebService {
 
         String query;
         if (payOrder.isEpayOrder()) {
-            query = buildSignedQuery(buildEpayNotifyParams(payOrder), key);
+            query = EpaySignUtil.buildSignedQuery(buildEpayNotifyParams(payOrder), key);
         } else {
-            query = "payId=" + encode(payOrder.getPayId()) + "&param=" + encode(payOrder.getParam())
-                    + "&type=" + payOrder.getType() + "&price=" + encode(String.valueOf(payOrder.getPrice()))
-                    + "&reallyPrice=" + encode(String.valueOf(payOrder.getReallyPrice()));
-            String sign = md5(payOrder.getPayId() + payOrder.getParam() + payOrder.getType()
+            query = "payId=" + PayUtils.encode(payOrder.getPayId()) + "&param=" + PayUtils.encode(payOrder.getParam())
+                    + "&type=" + payOrder.getType() + "&price=" + PayUtils.encode(String.valueOf(payOrder.getPrice()))
+                    + "&reallyPrice=" + PayUtils.encode(String.valueOf(payOrder.getReallyPrice()));
+            String sign = PayUtils.md5(payOrder.getPayId() + payOrder.getParam() + payOrder.getType()
                     + payOrder.getPrice() + payOrder.getReallyPrice() + key);
             query += "&sign=" + sign;
         }
@@ -371,7 +385,7 @@ public class WebService {
         }
 
         payOrderDao.setState(2, payOrder.getId());
-        return ResUtil.error("通知异步地址失败");
+        return ResUtil.error("通知异步地址失败或无响应");
     }
 
     // 查询订单数据
@@ -427,15 +441,31 @@ public class WebService {
         }
 
         if (payOrder.isEpayOrder()) {
-            return ResUtil.success(appendQuery(url, buildSignedQuery(buildEpayNotifyParams(payOrder), key)));
+            return ResUtil.success(appendQuery(url, EpaySignUtil.buildSignedQuery(buildEpayNotifyParams(payOrder), key)));
         }
 
-        String p = "payId="+encode(payOrder.getPayId())+"&param="+encode(payOrder.getParam())
-                +"&type="+payOrder.getType()+"&price="+encode(String.valueOf(payOrder.getPrice()))
-                +"&reallyPrice="+encode(String.valueOf(payOrder.getReallyPrice()));
-        String sign = md5(payOrder.getPayId()+payOrder.getParam()+payOrder.getType()+payOrder.getPrice()+payOrder.getReallyPrice()+key);
+        String p = "payId="+PayUtils.encode(payOrder.getPayId())+"&param="+PayUtils.encode(payOrder.getParam())
+                +"&type="+payOrder.getType()+"&price="+PayUtils.encode(String.valueOf(payOrder.getPrice()))
+                +"&reallyPrice="+PayUtils.encode(String.valueOf(payOrder.getReallyPrice()));
+        String sign = PayUtils.md5(payOrder.getPayId()+payOrder.getParam()+payOrder.getType()+payOrder.getPrice()+payOrder.getReallyPrice()+key);
         p = p+"&sign="+sign;
         return ResUtil.success(appendQuery(url, p));
+    }
+
+    /**
+     * 构建易支付异步通知的签名查询串
+     * <p>
+     * 按易支付规范组装异步通知参数并生成 MD5 签名，返回形如
+     * name1=value1&amp;name2=value2&amp;sign=xxx 的查询串，供支付成功自动通知、
+     * 后台手动补单等场景复用，避免签名逻辑分散。
+     * </p>
+     *
+     * @param payOrder 支付订单
+     * @param key      系统通讯密钥
+     * @return 带签名的请求查询串
+     */
+    public String buildEpayNotifyQuery(PayOrder payOrder, String key) {
+        return EpaySignUtil.buildSignedQuery(buildEpayNotifyParams(payOrder), key);
     }
 
     private Map<String, String> buildEpayNotifyParams(PayOrder payOrder) {
@@ -455,43 +485,13 @@ public class WebService {
         return params;
     }
 
-    private String buildSignedQuery(Map<String, String> params, String key) {
-        StringBuilder signContent = new StringBuilder();
-        params.entrySet().stream()
-                .filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-                .filter(entry -> !"sign".equals(entry.getKey()) && !"sign_type".equals(entry.getKey()))
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    if (signContent.length() > 0) {
-                        signContent.append("&");
-                    }
-                    signContent.append(entry.getKey()).append("=")
-                            .append(entry.getValue());
-                });
-
-        StringBuilder query = new StringBuilder();
-        params.entrySet().stream()
-                .filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    if (query.length() > 0) {
-                        query.append("&");
-                    }
-                    query.append(encode(entry.getKey())).append("=")
-                            .append(encode(entry.getValue()));
-                });
-
-        String sign = md5(signContent + key);
-        return query + "&sign=" + sign;
-    }
-
     public CommonRes getState(String t,String sign){
 
         String key = settingValue("key");
         if (key == null || key.isEmpty() || t == null || sign == null) {
             return ResUtil.error("参数不完整");
         }
-        String jsSign =  md5(t+key);
+        String jsSign =  PayUtils.md5(t+key);
         if (!sign.equals(jsSign)){
             return ResUtil.error("签名校验不通过");
         }
@@ -508,19 +508,6 @@ public class WebService {
         map.put("lastpay",lastpay);
 
         return ResUtil.success(map);
-    }
-
-    public static String md5(String text) {
-        //加密后的字符串
-        return DigestUtils.md5DigestAsHex(text.getBytes());
-    }
-
-    private static String priceKey(int type, double price) {
-        return type + "-" + BigDecimal.valueOf(price).stripTrailingZeros().toPlainString();
-    }
-
-    private static String encode(String value) {
-        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 
     private static String appendQuery(String url, String query) {

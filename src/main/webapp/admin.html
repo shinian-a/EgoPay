@@ -95,8 +95,8 @@
 
     });
 </script>
-<script src="https://lib.baomitu.com/jquery/3.3.1/jquery.min.js"></script>
-<script type="text/javascript" src="https://unpkg.com/wangeditor@3.1.1/release/wangEditor.min.js"></script>
+<script src="lib/jquery.min.js"></script>
+<script src="js/admin-common.js"></script>
 <script type="text/javascript">
 
 
@@ -115,12 +115,12 @@
                 out_menu += '<dl class="layui-nav-child">';
 
                 for (var ii = 0; ii < data[i].node.length; ii++) {
-                    out_menu += '<dd><a onclick="$(\'#LAY_preview\').load(\'' + data[i].node[ii].url + '\');">' + data[i].node[ii].name + '</a></dd>';
+                    out_menu += '<dd><a onclick="' + buildMenuClick(data[i].node[ii]) + ';">' + data[i].node[ii].name + '</a></dd>';
                 }
                 out_menu += '</dl>';
                 out_menu += '</li>';
             } else {
-                out_menu += '<li class="layui-nav-item"><a onclick="$(\'#LAY_preview\').load(\'' + data[i].url + '\');">' + data[i].name + '</a></li>';
+                out_menu += '<li class="layui-nav-item"><a onclick="' + buildMenuClick(data[i]) + ';">' + data[i].name + '</a></li>';
             }
         }
         console.log(out_menu);
@@ -128,6 +128,12 @@
         if (layui.element)
             layui.element.render();
     });
+
+    // 生成菜单项点击逻辑；合并后的二维码页面通过 qrType 传入支付方式（1 微信 2 支付宝）
+    function buildMenuClick(item) {
+        var prefix = item.qrType !== undefined ? "window.qrType=" + item.qrType + ";" : "";
+        return prefix + "$('#LAY_preview').load('" + item.url + "');";
+    }
 </script>
 </body>
 </html>

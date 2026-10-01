@@ -5,9 +5,12 @@ import com.vone.mq.dto.CommonRes;
 import com.vone.mq.dto.CreateOrderRes;
 import com.vone.mq.entity.Setting;
 import com.vone.mq.service.WebService;
+import com.vone.mq.utils.EpaySignUtil;
+import com.vone.mq.utils.PayUtils;
 import com.vone.mq.utils.ResUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,7 +18,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 易支付接口控制器
@@ -23,6 +29,8 @@ import java.util.*;
  */
 @RestController
 public class EpayController {
+
+    private static final Logger log = LoggerFactory.getLogger(EpayController.class);
 
     @Autowired
     private WebService webService;
@@ -107,6 +115,7 @@ public class EpayController {
                 out.write(new com.google.gson.Gson().toJson(result));
             }
         } catch (Exception e) {
+            log.error("query.php 处理异常", e);
             out.write("{\"code\":-1,\"msg\":\"系统错误\"}");
         }
     }
@@ -132,7 +141,6 @@ public class EpayController {
             String returnUrl = request.getParameter("return_url"); // 同步跳转地址
             String name = request.getParameter("name"); // 商品名称
             String money = request.getParameter("money"); // 订单金额
-            String sitename = request.getParameter("sitename"); // 网站名称
             String param = request.getParameter("param"); // 自定义参数
             String sign = request.getParameter("sign"); // 签名
             String signType = request.getParameter("sign_type"); // 签名类型
@@ -204,9 +212,9 @@ public class EpayController {
                     String requestUrl = request.getRequestURL().toString();
                     String baseUrl = requestUrl.substring(0, requestUrl.length() - "/mapi.php".length());
                     result.put("qrcode", baseUrl + "/enQrcode?url="
-                            + java.net.URLEncoder.encode(payUrl, java.nio.charset.StandardCharsets.UTF_8));
+                            + URLEncoder.encode(payUrl, StandardCharsets.UTF_8));
                     result.put("url", baseUrl + "/payPage/pay.html?orderId="
-                            + java.net.URLEncoder.encode(orderId, java.nio.charset.StandardCharsets.UTF_8));
+                            + URLEncoder.encode(orderId, StandardCharsets.UTF_8));
 
                     out.write(new com.google.gson.Gson().toJson(result));
                 } else {
@@ -218,6 +226,7 @@ public class EpayController {
                 }
             }
         } catch (Exception e) {
+            log.error("易支付下单处理异常", e);
             if (isRedirect) {
                 out.write("系统错误");
             } else {
@@ -235,76 +244,19 @@ public class EpayController {
      * @return 是否验证通过
      */
     private boolean verifySign(HttpServletRequest request, String sign, String signType) {
-        try {
-            // 获取所有参数
-            Map<String, String> params = new HashMap<>();
-            Enumeration<String> paramNames = request.getParameterNames();
-            while (paramNames.hasMoreElements()) {
-                String paramName = paramNames.nextElement();
-                // 排除sign和sign_type参数
-                if (!"sign".equals(paramName) && !"sign_type".equals(paramName)) {
-                    String paramValue = request.getParameter(paramName);
-                    if (paramValue != null && !paramValue.isEmpty()) {
-                        params.put(paramName, paramValue);
-                    }
-                }
-            }
-
-            // 生成待签名字符串
-            String signStr = generateSignString(params);
-
-            // 获取系统配置的商户密钥
-            String key = getSettingValue("key");
-            if (key == null || key.isEmpty()) {
-                return false;
-            }
-
-            // 根据签名类型进行验证
-            if ("MD5".equalsIgnoreCase(signType)) {
-                // MD5签名验证
-                String signContent = signStr + key;
-                String calculatedSign = DigestUtils.md5DigestAsHex(signContent.getBytes()).toUpperCase();
-                return calculatedSign.equals(sign.toUpperCase());
-            }
-
-            // 默认使用MD5验证
-            String signContent = signStr + key;
-            String calculatedSign = DigestUtils.md5DigestAsHex(signContent.getBytes()).toUpperCase();
-            return calculatedSign.equals(sign.toUpperCase());
-        } catch (Exception e) {
+        if (sign == null || sign.isEmpty()) {
             return false;
         }
-    }
-
-    /**
-     * 生成待签名字符串
-     * 按照参数名ASCII码递增排序（字典序），使用URL键值对的格式（即key1=value1&key2=value2…）拼接成字符串
-     *
-     * @param params 参数Map
-     * @return 待签名字符串
-     */
-    private String generateSignString(Map<String, String> params) {
-        if (params == null || params.isEmpty()) {
-            return "";
+        // 获取系统配置的商户密钥
+        String key = getSettingValue("key");
+        if (key == null || key.isEmpty()) {
+            return false;
         }
-
-        // 按照参数名ASCII码递增排序
-        List<String> keys = new ArrayList<>(params.keySet());
-        Collections.sort(keys);
-
-        // 拼接参数
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < keys.size(); i++) {
-            String key = keys.get(i);
-            String value = params.get(key);
-            if (i == 0) {
-                sb.append(key).append("=").append(value);
-            } else {
-                sb.append("&").append(key).append("=").append(value);
-            }
+        // 当前仅支持 MD5 签名
+        if (signType != null && !signType.isEmpty() && !"MD5".equalsIgnoreCase(signType)) {
+            return false;
         }
-
-        return sb.toString();
+        return EpaySignUtil.verify(EpaySignUtil.paramsFromRequest(request), sign, key);
     }
 
     /**
@@ -319,7 +271,7 @@ public class EpayController {
      */
     private String generateSystemSign(String payId, String param, Integer type, String price, String key) {
         String signContent = payId + param + type + price + key;
-        return DigestUtils.md5DigestAsHex(signContent.getBytes());
+        return PayUtils.md5(signContent);
     }
 
     /**

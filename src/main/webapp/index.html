@@ -85,18 +85,21 @@
 
 <div id="bg"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@1.11.3"></script>
-<script src="https://cdn.jsdelivr.net/gh/ajlkn/skel@3.0.1/dist/skel.min.js"></script>
+<script src="lib/jquery.min.js"></script>
+<script src="lib/skel.min.js"></script>
 <script src="/assets/js/util.js"></script>
 <script src="/assets/js/main.js"></script>
-<script src="https://lib.baomitu.com/layer/3.1.1/layer.js"></script>
+<script src="lib/layer.js"></script>
 
 
 <script>
     function login() {
-        $.post("/login", "user=" + $("#user").val() + "&pass=" + $("#pass").val(), function (data) {
+        $.post("/login", "user=" + encodeURIComponent($("#user").val()) + "&pass=" + encodeURIComponent($("#pass").val()), function (data) {
             layer.msg(data.msg);
             if (data.code == 1) {
+                if (data.data && data.data.weakPassword) {
+                    layer.alert("检测到当前仍为默认账号密码 admin/admin，为了账户安全，请登录后尽快在系统设置中修改！", {title: "安全提示"});
+                }
                 window.location.href = "admin.html";
             }
         });
