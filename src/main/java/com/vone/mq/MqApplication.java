@@ -10,6 +10,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class MqApplication extends SpringBootServletInitializer {
 
+    /** 主类加载时刻，用于计算启动耗时 */
+    public static final long START_TIME = System.currentTimeMillis();
+
     public static void main(String[] args) {
         SpringApplication.run(MqApplication.class, args);
     }

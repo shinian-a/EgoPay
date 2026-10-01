@@ -1,184 +1,198 @@
 @charset "UTF-8";
+
+/* ===== 基础重置 ===== */
 html {
     font-size: 62.5%;
-    font-family: 'helvetica neue', tahoma, arial, 'hiragino sans gb', 'microsoft yahei', 'Simsun', sans-serif
+    font-family: -apple-system, 'helvetica neue', tahoma, arial, 'hiragino sans gb', 'microsoft yahei', 'PingFang SC', 'Simsun', sans-serif;
+    -webkit-text-size-adjust: 100%;
 }
 
 body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, form, fieldset, legend, input, button, textarea, p, blockquote, th, td, hr {
     margin: 0;
-    padding: 0px 2px;
+    padding: 0;
 }
 
 body {
-    line-height: 1.333;
-    font-size: 12px
+    line-height: 1.5;
+    font-size: 13px;
+    color: #333;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #eafaf1 0%, #f4f6f8 42%, #eef1f5 100%);
+    background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-size: 100%;
-    font-family: arial, 'hiragino sans gb', 'microsoft yahei', 'Simsun', sans-serif
+    font-weight: normal;
 }
 
 input, textarea, select, button {
-    font-size: 12px;
-    font-weight: normal
+    font-size: 13px;
+    font-weight: normal;
+    font-family: inherit;
 }
 
 input[type="button"], input[type="submit"], select, button {
-    cursor: pointer
+    cursor: pointer;
 }
 
 table {
     border-collapse: collapse;
-    border-spacing: 0
+    border-spacing: 0;
 }
 
 address, caption, cite, code, dfn, em, th, var {
     font-style: normal;
-    font-weight: normal
+    font-weight: normal;
 }
 
 li {
-    list-style: none
+    list-style: none;
 }
 
 caption, th {
-    text-align: left
+    text-align: left;
 }
 
 q:before, q:after {
-    content: ''
+    content: '';
 }
 
 abbr, acronym {
     border: 0;
-    font-variant: normal
+    font-variant: normal;
 }
 
 sup {
-    vertical-align: text-top
+    vertical-align: text-top;
 }
 
 sub {
-    vertical-align: text-bottom
+    vertical-align: text-bottom;
 }
 
 fieldset, img, a img, iframe {
-    border-width: 0;
-    border-style: none
+    border: 0;
 }
 
 img {
-    -ms-interpolation-mode: bicubic
+    -ms-interpolation-mode: bicubic;
+    max-width: 100%;
 }
 
 textarea {
-    overflow-y: auto
+    overflow-y: auto;
 }
 
 legend {
-    color: #000
-}
-
-a:link, a:visited {
-    text-decoration: none
-}
-
-hr {
-    height: 0
-}
-
-label {
-    cursor: pointer
+    color: #000;
 }
 
 a {
-    color: #328CE5
+    color: #09bb07;
+    text-decoration: none;
 }
 
 a:hover {
-    color: #2b8ae8;
-    text-decoration: none
+    text-decoration: none;
 }
 
 a:focus {
-    outline: none
+    outline: none;
 }
 
-body, .body {
-    background: #f7f7f7;
-    height: 100%;
+/* ===== 页面骨架 ===== */
+.body {
     max-width: 640px;
     min-width: 300px;
-    min-height: 100%;
-
+    min-height: 100vh;
     margin: 0 auto;
+    padding: 0 12px 24px;
+    box-sizing: border-box;
 }
 
+/* ===== 顶部品牌栏 ===== */
 .mod-title {
-    height: 60px;
-    line-height: 60px;
+    height: 64px;
+    line-height: 64px;
     text-align: center;
-    border-bottom: 1px solid #ddd;
-    background: #fff
+    background: #ffffff;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+    margin: 0 -12px;
 }
 
 .ico_log {
     display: inline-block;
     width: 130px;
-    height: 38px;
+    height: 40px;
     vertical-align: middle;
-    margin-right: 7px
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .ico-1 {
-    background: url("weixin.jpg") no-repeat;
+    background-image: url("weixin.jpg");
 }
 
 .ico-2 {
-    background: url("alipay.jpg") no-repeat;
+    background-image: url("alipay.jpg");
 }
 
 .ico-3 {
-    background: url("weixin.jpg") no-repeat;
+    background-image: url("weixin.jpg");
 }
 
 .mod-title .text {
     font-size: 20px;
     color: #333;
-    font-weight: normal;
-    vertical-align: middle
+    vertical-align: middle;
 }
 
+/* ===== 主卡片 ===== */
 .mod-ct {
-    min-width: 300px;
-    max-width: 640px;
-    margin: 0 auto;
-    margin-top: 15px;
-    background: #fff url("wave.png") top center repeat-x;
+    position: relative;
+    margin: 16px auto 0;
+    padding: 22px 18px 18px;
+    background: #ffffff;
     text-align: center;
     color: #333;
-    border: 1px solid #e5e5e5;
-    border-top: none
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
 }
 
 .mod-ct .order {
-    font-size: 20px;
-    padding-top: 10px
+    font-size: 16px;
+    color: #666;
 }
 
 .mod-ct .amount {
-    font-size: 48px;
-    margin-top: 10px
+    margin-top: 8px;
 }
 
-.mod-ct .qr-image {
-    margin-top: 30px
+/* 金额 */
+#money {
+    font-size: 46px;
+    font-weight: 700;
+    color: #222;
+    letter-spacing: 1px;
+    line-height: 1.2;
 }
 
-.mod-ct .qr-image img {
-    width: 230px;
-    height: 230px
+/* ===== 二维码区域 ===== */
+.qrcode-img-wrapper {
+    margin-top: 18px;
+}
+
+.qrcode-img-area {
+    display: inline-block;
+    padding: 14px;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #eef0f2;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 #show_qrcode {
@@ -188,63 +202,113 @@ body, .body {
     object-fit: fill;
 }
 
-.mod-ct .detail {
-    margin-top: 10px;
-    padding-top: 0px;
-    padding-bottom: 10px;
-
+.ui-loading.qrcode-loading {
+    color: #999;
+    padding: 80px 0;
 }
 
-.mod-ct .detail .arrow .ico-arrow {
+.qrcode-guide {
+    cursor: pointer;
+}
+
+/* ===== 提示条（务必付款金额） ===== */
+#msg {
+    margin-top: 14px;
+}
+
+#msg h1 {
     display: inline-block;
-    width: 20px;
-    height: 11px;
-    background: url("wechat-pay.png") -25px -100px no-repeat
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-family: 'microsoft yahei', 'PingFang SC', sans-serif;
+    letter-spacing: 1px;
+    color: #e64340;
+    background: #fdecec;
+    border: 1px solid #f9d9d8;
+    border-radius: 10px;
+    line-height: 1.7;
 }
 
-.mod-ct .detail .detail-ct {
-    display: none;
-    font-size: 12px;
-    text-align: right;
-    line-height: 28px
+#msg h1 span {
+    color: #e64340;
+    font-weight: 600;
 }
 
-.mod-ct .detail .detail-ct dt {
-    float: left
+/* ===== 倒计时 ===== */
+.time-item {
+    margin-top: 16px;
 }
 
-.mod-ct .detail-open {
-    border-top: 1px solid #e5e5e5
-}
-
-.mod-ct .detail .arrow {
-    padding: 6px 34px;
-    border: 1px solid #e5e5e5
-}
-
-.mod-ct .detail .arrow .ico-arrow {
+.time-item strong {
     display: inline-block;
-    width: 20px;
-    height: 11px;
-    background: url("wechat-pay.png") -25px -100px no-repeat
+    min-width: 52px;
+    background: linear-gradient(135deg, #2ecb53 0%, #19b84c 100%);
+    color: #fff;
+    line-height: 30px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    padding: 0 10px;
+    margin: 0 4px;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(25, 184, 76, 0.28);
+    box-sizing: border-box;
 }
 
-.mod-ct .detail-open .arrow .ico-arrow {
-    display: inline-block;
-    width: 20px;
-    height: 11px;
-    background: url("wechat-pay.png") 0 -100px no-repeat
+.time-item strong s {
+    text-decoration: none;
+    opacity: 0.85;
+    margin-right: 2px;
 }
 
-.mod-ct .detail-open .detail-ct {
-    display: block
+/* ===== 打开 App 按钮 ===== */
+.open_app {
+    margin-top: 18px;
 }
 
+.open_app p {
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.open_app h1 {
+    margin: 0;
+}
+
+.open_app h1 a {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 20px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-radius: 44px;
+    background: linear-gradient(135deg, #2ecb53 0%, #12a843 100%);
+    box-shadow: 0 8px 18px rgba(18, 168, 67, 0.32);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.open_app h1 a:active {
+    transform: translateY(1px);
+    box-shadow: 0 4px 10px rgba(18, 168, 67, 0.28);
+}
+
+/* 支付宝入口使用蓝色按钮（依据 href 协议区分，不支持时回退为上方绿色） */
+.open_app h1 a:not([href^="weixin:"]) {
+    background: linear-gradient(135deg, #2f9bff 0%, #1078e8 100%);
+    box-shadow: 0 8px 18px rgba(16, 120, 232, 0.32);
+}
+
+/* ===== 扫码提示行 ===== */
 .mod-ct .tip {
-    margin-top: 20px;
-    border-top: 1px dashed #e5e5e5;
-    padding: 10px 0;
-    position: relative
+    margin-top: 22px;
+    border-top: 1px dashed #e8e8e8;
+    padding: 16px 0 6px;
+    position: relative;
 }
 
 .mod-ct .tip .ico-scan {
@@ -252,20 +316,18 @@ body, .body {
     width: 56px;
     height: 55px;
     background: url("wechat-pay.png") 0 0 no-repeat;
+    background-size: 56px 151px;
     vertical-align: middle;
-    *display: inline;
-    *zoom: 1
 }
 
 .mod-ct .tip .tip-text {
     display: inline-block;
     vertical-align: middle;
     text-align: left;
-    margin-left: 23px;
-    font-size: 16px;
+    margin-left: 18px;
+    font-size: 15px;
     line-height: 28px;
-    *display: inline;
-    *zoom: 1
+    color: #444;
 }
 
 .mod-ct .tip .dec {
@@ -274,26 +336,114 @@ body, .body {
     height: 45px;
     background: url("wechat-pay.png") 0 -55px no-repeat;
     position: absolute;
-    top: -23px
+    top: -23px;
 }
 
 .mod-ct .tip .dec-left {
     background-position: 0 -55px;
-    left: -136px
+    left: -136px;
 }
 
 .mod-ct .tip .dec-right {
     background-position: -25px -55px;
-    right: -136px
+    right: -136px;
 }
 
+/* ===== 订单详情折叠面板 ===== */
+.mod-ct .detail {
+    position: relative;
+    margin-top: 14px;
+}
+
+.mod-ct .detail .detail-ct {
+    display: none;
+    font-size: 13px;
+    text-align: right;
+    line-height: 30px;
+    padding: 10px 14px;
+    background: #fafbfc;
+    border: 1px solid #eef0f2;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.mod-ct .detail .detail-ct dt {
+    float: left;
+    color: #888;
+}
+
+.mod-ct .detail .detail-ct dd {
+    color: #333;
+    word-break: break-all;
+}
+
+.mod-ct .detail-open {
+    /* 展开状态容器 */
+}
+
+.mod-ct .detail .arrow {
+    display: inline-block;
+    padding: 7px 34px;
+    border: 1px solid #e5e7ea;
+    border-radius: 44px;
+    background: #fafbfc;
+}
+
+/* 精灵图原始尺寸 56x151：(0,100) 为向上箭头，(25,100) 为向下箭头；收起时显示向下、展开时显示向上 */
+.mod-ct .detail .arrow .ico-arrow {
+    display: inline-block;
+    width: 20px;
+    height: 11px;
+    background: url("wechat-pay.png") -25px -100px no-repeat;
+    background-size: 56px 151px;
+}
+
+.mod-ct .detail-open .arrow .ico-arrow {
+    background: url("wechat-pay.png") 0 -100px no-repeat;
+    background-size: 56px 151px;
+}
+
+/* 支付宝渠道使用 alipay-pay.png：向上箭头在 (0,100)，向下箭头在 (25,100) */
+.mod-ct .tip .ico-scan-ali {
+    background-image: url("alipay-pay.png");
+}
+
+.mod-ct .detail .arrow .ico-arrow-ali {
+    background: url("alipay-pay.png") -25px -100px no-repeat;
+    background-size: 56px 151px;
+}
+
+.mod-ct .detail-open .arrow .ico-arrow-ali {
+    background: url("alipay-pay.png") 0 -100px no-repeat;
+    background-size: 56px 151px;
+}
+
+.mod-ct .detail-open .detail-ct {
+    display: block;
+}
+
+/* ===== 过期提示 ===== */
+#timeOut {
+    padding: 30px 16px;
+}
+
+#timeOut p {
+    display: inline-block;
+    padding: 12px 20px;
+    font-size: 16px;
+    color: #e64340;
+    background: #fdecec;
+    border: 1px solid #f9d9d8;
+    border-radius: 10px;
+}
+
+/* ===== 底部说明 ===== */
 .foot {
     text-align: center;
-    margin: 30px auto;
-    color: #888888;
+    margin: 26px auto 10px;
+    color: #9aa0a6;
     font-size: 12px;
-    line-height: 20px;
-    font-family: "simsun"
+    line-height: 22px;
 }
 
 .copyRight {
@@ -306,24 +456,12 @@ body, .body {
     color: rgba(88, 161, 184, 0.08);
 }
 
+/* 通用 h1 兜底（页面内其他 h1） */
 h1 {
-    font-family: "微软雅黑";
+    font-family: 'microsoft yahei', 'PingFang SC', sans-serif;
     font-size: 15px;
     margin: 5px 0;
-    padding-bottom: 2px;
-    letter-spacing: 2px;
-}
-
-.time-item strong {
-    background: #3ec742;
-    color: #fff;
-    line-height: 25px;
-    font-size: 15px;
-    font-family: Arial;
-    padding: 0 10px;
-    margin-right: 10px;
-    border-radius: 5px;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    letter-spacing: 1px;
 }
 
 .item-title {

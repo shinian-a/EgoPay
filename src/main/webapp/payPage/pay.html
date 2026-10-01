@@ -85,7 +85,7 @@
             </div>
             
             <div class="tip">
-                <div class="ico-scan"></div>
+                <div class="ico-scan" :class="{ 'ico-scan-ali': payType == 2 }"></div>
                 <div class="tip-text">
                     <p>请使用{{payType1}}扫一扫</p>
 
@@ -107,7 +107,7 @@
                     <dd>等待支付</dd>
                 </dl>
 
-                <a href="javascript:void(0)" class="arrow" onclick="aaa()"><i class="ico-arrow"></i></a>
+                <a href="javascript:void(0)" class="arrow" onclick="aaa()"><i class="ico-arrow" :class="{ 'ico-arrow-ali': payType == 2 }"></i></a>
             </div>
         </div>
 
