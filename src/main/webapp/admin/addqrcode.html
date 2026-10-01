@@ -1,0 +1,122 @@
+<style>
+    .layui-table-cell { height: auto; overflow: visible; word-break: break-all; }
+    .layui-table img { max-width: 160px; max-height: 160px; display: block; }
+</style>
+
+<div class="layui-upload">
+    <button type="button" class="layui-btn layui-btn-normal" id="testList">选择<span id="qrTypeName">微信</span>有金额的二维码</button>
+    <button type="button" class="layui-btn" id="saveBtn" onclick="saveqr()">保存二维码</button>
+    <div class="layui-inline" style="margin-left:10px;color:#666;font-size:12px;">可多选，识别完填金额再点保存</div>
+    <table class="layui-hide" id="test" lay-filter="qrlist"></table>
+</div>
+
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+<script>
+    var qrType = window.qrType || 1;
+    var imgs = [], mytable;
+    $('#qrTypeName').text(qrType == 2 ? '支付宝' : '微信');
+
+    layui.use(['upload', 'table', 'layer'], function () {
+        var $ = layui.jquery, upload = layui.upload, table = layui.table, layer = layui.layer;
+
+        mytable = table.render({
+            elem: '#test',
+            data: imgs,
+            page: false,
+            cols: [[
+                {type: 'numbers', title: '序号', width: 60},
+                {field: 'b64', width: 180, title: '二维码', templet: function (d) {
+                        return '<img src="' + d.b64 + '"/>';
+                    }},
+                {field: 'url', minWidth: 200, title: '内容', edit: 'text'},   /* ★内容列，支持手动改 */
+                {field: 'money', width: 110, title: '金额', edit: 'text'},
+                {title: '操作', width: 80, align: 'center', toolbar: '#barDemo'}
+            ]]
+        });
+
+        /* 单元格编辑后同步回源数组，否则 reload/save 会丢 */
+        table.on('edit(qrlist)', function (obj) {
+            var idx = obj.tr.data('index');
+            if (idx !== undefined) imgs[idx] = obj.data;
+        });
+
+        table.on('tool(qrlist)', function (obj) {
+            if (obj.event === 'del') {
+                layer.confirm('真的删除这一行吗？', function (index) {
+                    var idx = obj.tr.data('index');
+                    if (idx !== undefined) imgs.splice(idx, 1);
+                    mytable.reload({ data: imgs });
+                    layer.close(index);
+                });
+            }
+        });
+
+        upload.render({
+            elem: '#testList',
+            url: '/upload/',
+            accept: 'images',
+            exts: 'png|jpg|jpeg|bmp|webp',
+            multiple: true,
+            auto: false,
+            choose: function (obj) {
+                var files = this.files = obj.pushFile();
+                imgs = [];
+                mytable.reload({ data: imgs });
+                layer.msg("正在识别，请稍候…手动填金额后点「保存二维码」");
+                obj.preview(function (index, file, result) {
+                    var b64Part = result.indexOf(',') > -1 ? result.split(',')[1] : result;
+                    $.post("/deQrcode", "base64=" + encodeURIComponent(b64Part), function (data) {
+                        console.log(file.name, data);
+                        var txt = '';
+                        if (typeof data === 'string') txt = data;
+                        else if (data && data.data) txt = data.data;
+                        else if (data && data.url) txt = data.url;
+                        else if (data && data.code === 0) txt = data.msg || '';
+                        imgs.push({ index: imgs.length, money: '', b64: result, url: txt });
+                        mytable.reload({ data: imgs });
+                    }).fail(function () {
+                        imgs.push({ index: imgs.length, money: '', b64: result, url: '识别失败请手动填写' });
+                        mytable.reload({ data: imgs });
+                    });
+                });
+            }
+        });
+    });
+
+    function saveqr() {
+        var data = layui.table.cache.test;
+        if (!data || data.length === 0) { layer.msg("没有可保存的数据"); return; }
+        for (var i = 0; i < data.length; i++) {
+            if (!data[i].money || !checkRate(data[i].money)) {
+                layer.msg("第 " + (i + 1) + " 行金额有误"); return;
+            }
+            if (!data[i].url || /识别失败|请填写/.test(data[i].url)) {
+                layer.msg("第 " + (i + 1) + " 行内容未识别到，请手动填写"); return;
+            }
+        }
+        $('#saveBtn').prop('disabled', true).addClass('layui-btn-disabled');
+        up(data, 0);
+    }
+
+    function up(obj, index) {
+        if (index >= obj.length) {
+            layer.msg("操作成功！");
+            imgs = [];
+            mytable.reload({ data: imgs });
+            $('#saveBtn').prop('disabled', false).removeClass('layui-btn-disabled');
+            return;
+        }
+        $.post("/admin/addPayQrcode",
+            "type=" + qrType + "&payUrl=" + encodeURIComponent(obj[index].url) + "&price=" + encodeURIComponent(obj[index].money),
+            function () { up(obj, index + 1); }
+        ).fail(function () {
+            layer.msg("第 " + (index + 1) + " 条保存失败");
+            $('#saveBtn').prop('disabled', false).removeClass('layui-btn-disabled');
+        });
+    }
+
+    function checkRate(input) { return /^\d+(\.\d{1,2})?$/.test(String(input)); }
+</script>

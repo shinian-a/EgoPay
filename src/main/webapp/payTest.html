@@ -345,7 +345,7 @@
                 '</p><p><strong>金额：</strong>' + requestData.money + ' 元</p>');
             $('#qrcodeContainer').html('<p>API 返回结果：</p><pre>' +
                 $('<div>').text(JSON.stringify(data, null, 2)).html() + '</pre>' +
-                (data.qrcode ? '<p><img class="qrcode-img" src="' + data.qrcode + '" alt="支付二维码"></p>' : ''));
+                (data.qrcode ? '<p><img class="qrcode-img" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&ecc=H&data=' + encodeURIComponent(data.qrcode) + '" alt="支付二维码"></p>' : ''));
             $('#resultDetails').data('outTradeNo', requestData.out_trade_no);
             $('#resultDetails').data('orderId', data.orderId || '');
             $('#resultDetails').data('pid', requestData.pid);

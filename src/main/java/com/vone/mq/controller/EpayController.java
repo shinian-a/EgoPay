@@ -211,8 +211,7 @@ public class EpayController {
                     result.put("orderId", orderId);
                     String requestUrl = request.getRequestURL().toString();
                     String baseUrl = requestUrl.substring(0, requestUrl.length() - "/mapi.php".length());
-                    result.put("qrcode", baseUrl + "/enQrcode?url="
-                            + URLEncoder.encode(payUrl, StandardCharsets.UTF_8));
+                    result.put("qrcode", payUrl);
                     result.put("url", baseUrl + "/payPage/pay.html?orderId="
                             + URLEncoder.encode(orderId, StandardCharsets.UTF_8));
 
