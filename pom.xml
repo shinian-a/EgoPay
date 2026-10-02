@@ -10,8 +10,8 @@
     </parent>
     <groupId>com.vone</groupId>
     <artifactId>mq</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>mq</name>
+    <version>v1.1</version>
+    <name>egopay</name>
     <packaging>war</packaging>
 
     <description>Demo project for Spring Boot</description>

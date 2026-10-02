@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -6,78 +7,119 @@
     <title>易支付接口测试页面</title>
     <link rel="stylesheet" href="layui/css/layui.css" media="all"/>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            padding: 20px;
-            background-color: #f2f2f2;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 820px;
             margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
         }
 
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f8f8;
-            border-radius: 5px;
-            display: none;
+        /* 顶部标题栏 */
+        .page-header {
+            background: linear-gradient(135deg, #57a8e0 0%, #3d8ac9 100%);
+            padding: 22px 30px;
+            border-bottom: 1px solid #e8e8e8;
         }
 
-        .qrcode-container {
+        .page-header h1 {
             text-align: center;
-            margin: 20px 0;
+            color: #fff;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .qrcode-img {
-            max-width: 200px;
-            height: auto;
+        /* 表单区域 */
+        .form-wrapper {
+            padding: 25px 30px 30px;
         }
 
-        .order-info {
-            margin: 15px 0;
-            padding: 10px;
-            background: #e8f4ff;
-            border-radius: 5px;
+        .layui-form-item {
+            margin-bottom: 20px;
         }
 
-        /* 添加loading样式 */
-        #loading {
-            text-align: center;
-            display: none;
+        .layui-form-label {
+            padding: 9px 15px;
+            font-weight: 600;
+            color: #444;
+            background-color: #f5f7fa;
+            border-radius: 4px 0 0 4px;
+            min-width: 100px;
         }
 
-        #loading img {
-            display: inline-block;
+        .layui-input-block {
+            margin-left: 100px !important;
         }
 
-        .key-management {
-            margin-top: 10px;
-            padding: 15px 0;
-            background: white;
+        .layui-input {
+            height: 38px;
+            line-height: 38px;
+            border: 1px solid #dcdfe6;
             border-radius: 4px;
-            display: flex;
+            padding: 0 12px;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .layui-input:focus {
+            border-color: #57a8e0;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.04), 0 0 0 3px rgba(87, 168, 224, 0.12);
+            outline: none;
+        }
+
+        .layui-form-mid.layui-word-aux {
+            color: #999;
+            font-size: 12px;
+            line-height: 38px;
+            padding-left: 5px;
+        }
+
+        /* 密钥操作按钮 - 放在辅助文字区域 */
+        .key-actions {
+            display: inline-flex;
             align-items: center;
-            justify-content: flex-start;
+            gap: 8px;
+            margin-top: 6px;
         }
 
-        .key-management .layui-btn-container {
-            margin: 0 0 0 110px;
-            padding-left: 15px;
+        .key-actions .layui-btn {
+            height: 28px;
+            line-height: 28px;
+            padding: 0 12px;
+            font-size: 13px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
         }
 
-        .key-management .layui-btn {
-            margin-right: 10px;
+        .key-actions .layui-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
         }
 
         .key-status {
-            margin-left: 15px;
+            display: inline-block;
+            margin-left: 10px;
             color: #666;
-            font-size: 14px;
+            font-size: 12px;
+            line-height: 28px;
         }
 
         .key-status.success {
@@ -88,127 +130,315 @@
             color: #faad14;
         }
 
-        .layui-form-item {
-            margin-bottom: 15px;
+        /* 单选按钮美化 */
+        .layui-form-radio {
+            margin: 4px 12px 4px 0;
+        }
+
+        /* 提交按钮区域 */
+        .submit-group {
+            padding-top: 10px;
+            border-top: 1px dashed #e8e8e8;
+            margin-top: 25px;
+            padding-left: 0;
+        }
+
+        .submit-group .layui-btn {
+            height: 38px;
+            line-height: 38px;
+            padding: 0 28px;
+            font-size: 15px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .submit-group .layui-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .submit-group .layui-btn-primary:hover {
+            border-color: #57a8e0;
+            color: #57a8e0;
+        }
+
+        /* 结果区域 */
+        .result-box {
+            margin: 0;
+            padding: 0;
+            background: #fafbfc;
+            border-top: 1px solid #e8e8e8;
+            display: none;
+        }
+
+        .result-box .result-header {
+            background: #f0f5fa;
+            padding: 14px 30px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .result-box .result-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #3d8ac9;
+            font-weight: 600;
+        }
+
+        .result-box .result-body {
+            padding: 20px 30px;
+        }
+
+        .order-info {
+            margin: 15px 0;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #e8f4ff 0%, #f0f8ff 100%);
+            border-radius: 6px;
+            border-left: 4px solid #57a8e0;
+        }
+
+        .order-info p {
+            margin: 6px 0;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .order-info p strong {
+            color: #333;
+        }
+
+        .qrcode-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .qrcode-img {
+            max-width: 200px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .result-box .layui-btn-container {
+            margin: 18px 0;
+            padding-left: 0;
+        }
+
+        .result-box .layui-btn {
+            height: 34px;
+            line-height: 34px;
+            padding: 0 18px;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .result-box .layui-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+
+        .result-details {
+            margin-top: 15px;
+        }
+
+        .result-details pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* 滚动条美化 */
+        .result-details pre::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .result-details pre::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 3px;
+        }
+
+        .result-details pre::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        /* loading */
+        #loading {
+            text-align: center;
+            display: none;
+        }
+
+        #loading img {
+            display: inline-block;
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            body {
+                padding: 15px 10px;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .page-header {
+                padding: 18px 15px;
+            }
+
+            .page-header h1 {
+                font-size: 18px;
+            }
+
+            .form-wrapper {
+                padding: 20px 15px;
+            }
+
+            .layui-form-label {
+                min-width: 80px;
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+
+            .layui-input-block {
+                margin-left: 80px !important;
+            }
+
+            .result-box .result-header,
+            .result-box .result-body {
+                padding: 14px 15px;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1 style="text-align: center;">易支付接口测试页面</h1>
+    <div class="page-header">
+        <h1>易支付接口测试页面</h1>
+    </div>
 
     <!-- 添加居中的loading图标 -->
     <!--<div id="loading"><img src="payPage/loading.gif" alt="加载中..."></div>-->
 
-    <form class="layui-form" action="" lay-filter="payForm">
-        <div class="layui-form-item">
-            <label class="layui-form-label">商户 PID</label>
-            <div class="layui-input-block">
-                <input type="text" name="pid" placeholder="请输入后台配置的商户 PID" autocomplete="off" class="layui-input">
+    <div class="form-wrapper">
+        <form class="layui-form" action="" lay-filter="payForm">
+            <div class="layui-form-item">
+                <label class="layui-form-label">商户 PID</label>
+                <div class="layui-input-block">
+                    <input type="text" name="pid" placeholder="请输入后台配置的商户 PID" autocomplete="off" class="layui-input">
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">通讯密钥</label>
-            <div class="layui-input-block">
-                <input type="text" name="key" placeholder="请输入通讯密钥" autocomplete="off" class="layui-input"
-                       id="keyInput">
-                <div class="layui-form-mid layui-word-aux">用于生成签名</div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">通讯密钥</label>
+                <div class="layui-input-block">
+                    <input type="text" name="key" placeholder="请输入通讯密钥" autocomplete="off" class="layui-input"
+                           id="keyInput">
+                    <div class="layui-form-mid layui-word-aux">
+                        用于生成签名
+                        <div class="key-actions">
+                            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="saveKeyBtn">保存密钥</button>
+                            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="clearKeyBtn">清除密钥</button>
+                            <span class="key-status" id="keyStatus"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="key-management">
-            <div class="layui-btn-container">
-                <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="saveKeyBtn">保存密钥</button>
-                <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="clearKeyBtn">清除密钥
-                </button>
+            <div class="layui-form-item">
+                <label class="layui-form-label">商户订单号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="out_trade_no" placeholder="请输入商户订单号" autocomplete="off" class="layui-input"
+                           value="">
+                    <div class="layui-form-mid layui-word-aux">商户订单号，建议使用时间戳，不可重复</div>
+                </div>
             </div>
-            <div class="key-status" id="keyStatus"></div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">商户订单号</label>
-            <div class="layui-input-block">
-                <input type="text" name="out_trade_no" placeholder="请输入商户订单号" autocomplete="off" class="layui-input"
-                       value="">
-                <div class="layui-form-mid layui-word-aux">商户订单号，建议使用时间戳，不可重复</div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">商品名称</label>
+                <div class="layui-input-block">
+                    <input type="text" name="name" placeholder="请输入商品名称" autocomplete="off" class="layui-input"
+                           value="测试商品">
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">商品名称</label>
-            <div class="layui-input-block">
-                <input type="text" name="name" placeholder="请输入商品名称" autocomplete="off" class="layui-input"
-                       value="测试商品">
+            <div class="layui-form-item">
+                <label class="layui-form-label">支付方式</label>
+                <div class="layui-input-block">
+                    <input type="radio" name="type" value="1" title="微信支付">
+                    <input type="radio" name="type" value="2" title="支付宝支付" checked>
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">支付方式</label>
-            <div class="layui-input-block">
-                <input type="radio" name="type" value="1" title="微信支付">
-                <input type="radio" name="type" value="2" title="支付宝支付" checked>
+            <div class="layui-form-item">
+                <label class="layui-form-label">订单金额</label>
+                <div class="layui-input-block">
+                    <input type="number" name="money" placeholder="请输入订单金额" autocomplete="off" class="layui-input"
+                           step="0.01" value="1.00">
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">订单金额</label>
-            <div class="layui-input-block">
-                <input type="number" name="money" placeholder="请输入订单金额" autocomplete="off" class="layui-input"
-                       step="0.01" value="1.00">
+            <div class="layui-form-item">
+                <label class="layui-form-label">附加参数</label>
+                <div class="layui-input-block">
+                    <input type="text" name="param" placeholder="请输入附加参数(可选)" autocomplete="off"
+                           class="layui-input" value="test123">
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">附加参数</label>
-            <div class="layui-input-block">
-                <input type="text" name="param" placeholder="请输入附加参数(可选)" autocomplete="off"
-                       class="layui-input" value="test123">
+            <div class="layui-form-item">
+                <label class="layui-form-label">notify_url</label>
+                <div class="layui-input-block">
+                    <input type="url" name="notifyUrl" autocomplete="off" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">商城服务器接收支付结果后必须返回 success</div>
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">notify_url</label>
-            <div class="layui-input-block">
-                <input type="url" name="notifyUrl" autocomplete="off" class="layui-input">
-                <div class="layui-form-mid layui-word-aux">商城服务器接收支付结果后必须返回 success</div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">return_url</label>
+                <div class="layui-input-block">
+                    <input type="url" name="returnUrl" autocomplete="off" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">用户支付完成后浏览器跳转的商城页面</div>
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">return_url</label>
-            <div class="layui-input-block">
-                <input type="url" name="returnUrl" autocomplete="off" class="layui-input">
-                <div class="layui-form-mid layui-word-aux">用户支付完成后浏览器跳转的商城页面</div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">支付页面</label>
+                <div class="layui-input-block">
+                    <input type="radio" name="mode" value="submit" title="submit.php 页面支付" checked>
+                    <input type="radio" name="mode" value="mapi" title="mapi.php 返回JSON">
+                </div>
             </div>
-        </div>
 
-        <div class="layui-form-item">
-            <label class="layui-form-label">支付页面</label>
-            <div class="layui-input-block">
-                <input type="radio" name="mode" value="submit" title="submit.php 页面支付" checked>
-                <input type="radio" name="mode" value="mapi" title="mapi.php 返回JSON">
+            <div class="layui-form-item submit-group">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit lay-filter="createOrder">发起支付</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
             </div>
-        </div>
-
-        <div class="layui-form-item">
-            <div class="layui-input-block">
-                <button class="layui-btn" lay-submit lay-filter="createOrder">发起支付</button>
-                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
-            </div>
-        </div>
-    </form>
+        </form>
+    </div>
 
     <div class="result-box" id="resultBox">
-        <h3>支付信息</h3>
-        <div class="order-info" id="orderInfo"></div>
-        <div class="qrcode-container" id="qrcodeContainer"></div>
-        <div class="layui-btn-container">
-            <button class="layui-btn layui-btn-normal" id="checkOrderBtn">查询订单状态</button>
-            <button class="layui-btn layui-btn-danger" id="closeOrderBtn">关闭订单</button>
-            <button class="layui-btn layui-btn-primary" id="testNotifyBtn">测试回调校验</button>
+        <div class="result-header">
+            <h3>支付信息</h3>
         </div>
-        <div class="result-details" id="resultDetails"></div>
+        <div class="result-body">
+            <div class="order-info" id="orderInfo"></div>
+            <div class="qrcode-container" id="qrcodeContainer"></div>
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal" id="checkOrderBtn">查询订单状态</button>
+                <button class="layui-btn layui-btn-danger" id="closeOrderBtn">关闭订单</button>
+            </div>
+            <div class="result-details" id="resultDetails"></div>
+        </div>
     </div>
 </div>
 
@@ -413,43 +643,6 @@
                 },
                 error: function () {
                     layer.msg('关闭订单请求失败', {icon: 2});
-                }
-            });
-        });
-
-        // 使用当前订单构造标准易支付回调，验证 VMQ 的回调接口和签名校验。
-        $('#testNotifyBtn').click(function () {
-            var detail = $('#resultDetails');
-            var key = detail.data('key');
-            var pid = detail.data('pid');
-            var outTradeNo = detail.data('outTradeNo');
-            var type = detail.data('type');
-            var formData = form.val('payForm');
-            if (!key || !pid || !outTradeNo) {
-                layer.msg('请先创建订单', {icon: 2});
-                return;
-            }
-            var callback = {
-                pid: pid,
-                trade_no: detail.data('orderId') || outTradeNo,
-                out_trade_no: outTradeNo,
-                type: type,
-                name: formData.name,
-                money: formData.money,
-                trade_status: 'TRADE_SUCCESS',
-                param: formData.param || '',
-                sign_type: 'MD5'
-            };
-            callback.sign = makeEpaySign(callback, key);
-            $.ajax({
-                url: '/pay/notify',
-                method: 'GET',
-                data: callback,
-                success: function (res) {
-                    layer.msg('回调校验结果：' + res, {icon: res === 'success' ? 1 : 2});
-                },
-                error: function () {
-                    layer.msg('回调接口请求失败', {icon: 2});
                 }
             });
         });

@@ -1,21 +1,4 @@
-<!--
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>API调用说明</title>
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="layui/css/layui.css" media="all" />
-</head>
-<body class="body" style="padding: 15px;">
 
-<h1 style="text-align: center">Api调用说明</h1><br><br>
--->
 <div style="margin: 15px 0; text-align: center;">
     <a class="layui-btn layui-btn-normal" href="payTest.html" target="_blank">
         打开 payTest.html 测试支付页面
@@ -786,18 +769,9 @@
 
                     </blockquote>
 
-                    <pre class="layui-code">
-
-                        <?php include 'api.php'?>
-                        <!--                    </pre>-->
-                        <!--                </div>-->
-                        <!--            </div>-->
-                        <!--        </div>-->
-                        <!--    </div>-->
-                        <!--</div>-->
-
-&lt;?php
+                    <pre class="layui-code">&lt;?php
 ini_set(&quot;error_reporting&quot;,&quot;E_ALL &amp; ~E_NOTICE&quot;);
+
 $key = &quot;83d551f0b3609781a22536ca2658473d&quot;;//通讯密钥
 $payId = $_GET[&#x27;payId&#x27;];//商户订单号
 $param = $_GET[&#x27;param&#x27;];//创建订单的时候传入的参数
@@ -805,18 +779,20 @@ $type = $_GET[&#x27;type&#x27;];//支付方式 ：微信支付为1 支付宝支�
 $price = $_GET[&#x27;price&#x27;];//订单金额
 $reallyPrice = $_GET[&#x27;reallyPrice&#x27;];//实际支付金额
 $sign = $_GET[&#x27;sign&#x27;];//校验签名，计算方式 = md5(payId + param + type + price + reallyPrice + 通讯密钥)
+
 //开始校验签名
 $_sign =  md5($payId . $param . $type . $price . $reallyPrice . $key);
 if ($_sign != $sign) {
     echo &quot;error_sign&quot;;//sign校验不通过
     exit();
 }
+
+
 echo &quot;success&quot;;
 //继续业务流程
 //echo &quot;商户订单号：&quot;.$payId .&quot;&lt;br&gt;自定义参数：&quot;. $param .&quot;&lt;br&gt;支付方式：&quot;. $type .&quot;&lt;br&gt;订单金额：&quot;. $price .&quot;&lt;br&gt;实际支付金额：&quot;. $reallyPrice;
 
-?&gt;
-            </pre>
+?&gt;</pre>
 
                 </div>
             </div>
@@ -971,20 +947,74 @@ pid=1000&amp;type=alipay&amp;out_trade_no=ORDER1001&amp;notify_url=https%3A%2F%2
                             </tbody>
                         </table>
                     </blockquote>
+
                     <blockquote class="layui-elem-quote news_search">
-                        <p>回调签名字段示例：</p>
-                        <pre class="layui-code">pid
-trade_no
-out_trade_no
-type
-name
-money
-trade_status
-param
-sign
-sign_type</pre>
-                        <p>只有 <code>TRADE_SUCCESS</code> 视为成功，接收成功必须返回纯文本
-                            <code>success</code>。</p>
+                        <p>回调处理示例代码（PHP）：</p>
+                        <pre class="layui-code">&lt;?php
+ini_set(&quot;error_reporting&quot;,&quot;E_ALL &amp; ~E_NOTICE&quot;);
+
+$pid         = isset($_GET['pid'])         ? $_GET['pid']         : '';
+$trade_no    = isset($_GET['trade_no'])    ? $_GET['trade_no']    : '';
+$out_trade_no = isset($_GET['out_trade_no']) ? $_GET['out_trade_no'] : '';
+$type        = isset($_GET['type'])        ? $_GET['type']        : '';
+$name        = isset($_GET['name'])        ? $_GET['name']        : '';
+$money       = isset($_GET['money'])       ? $_GET['money']       : '';
+$trade_status = isset($_GET['trade_status']) ? $_GET['trade_status'] : '';
+$param       = isset($_GET['param'])       ? $_GET['param']       : '';
+$sign        = isset($_GET['sign'])        ? $_GET['sign']        : '';
+$sign_type   = isset($_GET['sign_type'])   ? $_GET['sign_type']   : '';
+
+// 通讯密钥（与易支付后台配置一致）
+$key = "83d551f0b3609781a22536ca2658473d";
+
+// 验签：按参数名ASCII升序排列（排除sign和sign_type），拼接后加密钥做MD5
+$sign_params = array(
+    'pid' => $pid,
+    'trade_no' => $trade_no,
+    'out_trade_no' => $out_trade_no,
+    'type' => $type,
+    'name' => $name,
+    'money' => $money,
+    'trade_status' => $trade_status,
+    'param' => $param,
+);
+// 排序并拼接
+ksort($sign_params);
+$sign_str = '';
+foreach ($sign_params as $k => $v) {
+    if ($v !== '') {
+        $sign_str .= $k . '=' . $v . '&';
+    }
+}
+$sign_str = rtrim($sign_str, '&') . $key;
+
+// 计算签名
+$calc_sign = md5($sign_str);
+
+// 校验签名
+if ($calc_sign !== $sign) {
+    echo "error_sign";
+    exit();
+}
+
+// 判断交易状态
+if ($trade_status === 'TRADE_SUCCESS') {
+    // 支付成功，处理业务逻辑
+    // $out_trade_no 为商户订单号，可用于查询本系统订单
+    // $trade_no 为易支付系统订单号
+    // $param 为创建订单时传入的自定义参数
+
+    // 示例：记录日志
+    // file_put_contents('notify_log.txt', date('Y-m-d H:i:s') . " 订单:$out_trade_no 支付成功\n", FILE_APPEND);
+
+    // 接收成功必须返回纯文本 success（易支付规范）
+    echo "success";
+} else {
+    // 其他状态，根据业务需要处理
+    echo "success";
+}
+?></pre><p>只有 <code>TRADE_SUCCESS</code> 视为成功，接收成功必须返回纯文本
+                        <code>success</code>。</p>
                     </blockquote>
                 </div>
             </div>
@@ -996,21 +1026,8 @@ sign_type</pre>
                 var element = layui.element;
                 layui.element.render();
                 layui.code({
-                    title: 'PHP回调示例代码'
+                    title: '示例代码'
                 });
 
             });
         </script>
-        <!--
-
-        <script type="text/javascript" src="layui/layui.js"></script>
-        <script>
-            layui.use(['element', 'layer'], function(){
-                var element = layui.element;
-                var layer = layui.layer;
-
-            });
-        </script>
-        </body>
-        </html>
-        -->

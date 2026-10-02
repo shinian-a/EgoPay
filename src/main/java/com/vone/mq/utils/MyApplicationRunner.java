@@ -83,7 +83,7 @@ public class MyApplicationRunner implements ApplicationRunner {
                     settings.size(), System.currentTimeMillis() - initStart);
         }
 
-        if (!settingDao.findById("pid").isPresent()) {
+        if (settingDao.findById("pid").isEmpty()) {
             settingDao.save(setting("pid", "1000"));
             log.info("补齐缺失的配置项：pid=1000");
         }
