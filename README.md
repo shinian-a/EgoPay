@@ -4,14 +4,17 @@
 
 > 本项目仅适合个人开发者学习、调试和测试。请遵守当地法律法规，不要用于未经授权的商业支付或其他非法用途。
 
-## 已对接[异次元-易支付插件](https://github.com/lizhipay/acg-faka)
-## 推荐发卡：异次元
+# [EgoPay官网](https://shinian-a.github.io/)
+
+## 已对接：[异次元-易支付插件](https://faka.wiki/zh-cn/)
+## 已对接：[独角Dujiao-Next](https://dujiao-next.com/)
+## 推荐发卡：异次元、独角Dujiao-Next
 ## 功能特性
 
-- 微信、支付宝收款码管理
+- 微信、支付宝收款码管理/固定金额存储
 - 创建订单、查询订单、关闭订单
 - 订单超时和金额区分，避免相同金额订单冲突
-- 异步通知和同步跳转
+- 异步通知和同步跳转/易支付异步同步
 - 监控端心跳、收款推送和状态查询
 - 二维码生成与识别
 - 管理后台：系统配置、收款码、订单和运行状态
@@ -44,6 +47,12 @@
 
 ### 1. 从源码运行
 
+## [安装IDEA](https://www.jetbrains.com.cn/)
+### 克隆仓库
+```bash
+git clone https://github.com/shinian-a/EgoPay.git
+```
+### Maven环境终端
 ```bash
 mvn spring-boot:run
 ```
@@ -58,7 +67,7 @@ java -jar target/mq-0.0.1-SNAPSHOT.jar
 启动后访问：
 
 ```text
-http://localhost:8081/
+http://127.0.0.1:8081/
 ```
 
 也可以通过启动参数修改端口：
@@ -68,7 +77,6 @@ java -jar target/mq-0.0.1-SNAPSHOT.jar --server.port=9090
 ```
 
 ## 默认配置
-
 首次启动时，系统会自动初始化基础配置：
 
 | 配置项 | 默认值 |
@@ -242,7 +250,7 @@ src/test/                      测试代码
 pom.xml                        Maven 配置
 ```
 
-编译产物目录 `target/` 和 `out/` 不参与版本控制。
+编译产物目录 `target/` 和 `out/` 
 
 ## 许可证
 

@@ -377,7 +377,8 @@ public class WebService {
             query += "&sign=" + sign;
         }
 
-        String response = HttpRequest.sendGet(url, query);
+        // 先以 GET 通知；若对端无响应或未返回 success（如只接收 POST 的发卡网），自动改用 POST 重新提交。
+        String response = HttpRequest.sendNotify(url, query);
         if (response != null && "success".equalsIgnoreCase(response.trim())) {
             payOrder.setState(1);
             payOrderDao.save(payOrder);

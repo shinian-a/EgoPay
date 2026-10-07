@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 复用 Spring Boot 默认的日期格式、级别、PID、异常转换等变量定义 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!--
+        覆盖控制台输出格式。
+        原默认格式中线程名写为 [%15.15t]：右对齐固定 15 位，短线程名（如 main）左侧会补出大量空格；
+        logger 名写为 %-40.40logger{39}：左对齐固定 40 位，右侧同样会补齐空格。
+        这里改为不固定宽度，输出紧凑。
+    -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%thread]){faint} %clr(%logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

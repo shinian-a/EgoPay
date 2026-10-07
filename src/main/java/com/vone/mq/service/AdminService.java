@@ -188,7 +188,9 @@ public class AdminService {
             }
         }
 
-        String res = HttpRequest.sendGet(url,p);
+        // 先以 GET 通知；若对端无响应或未返回 success（如只接收 POST 的发卡网），自动改用 POST 重新提交。
+        // 易支付订单与微免签订单均走此逻辑。
+        String res = HttpRequest.sendNotify(url,p);
 
         if (res!=null && "success".equalsIgnoreCase(res.trim())){
             if (payOrder.getState()==0){
