@@ -4,11 +4,11 @@
 
 > 本项目仅适合个人开发者学习、调试和测试。请遵守当地法律法规，不要用于未经授权的商业支付或其他非法用途。
 
-# [EgoPay官网](https://shinian-a.github.io/)
-
-## 已对接：[异次元-易支付插件](https://faka.wiki/zh-cn/)
-## 已对接：[独角Dujiao-Next](https://dujiao-next.com/)
-## 推荐发卡：异次元、独角Dujiao-Next
+---
+## 支持系统
+### [异次元-易支付插件](https://faka.wiki/zh-cn/)
+### [独角Dujiao-Next](https://dujiao-next.com/)
+### 推荐发卡：异次元、独角Dujiao-Next
 ## 功能特性
 
 - 微信、支付宝收款码管理/固定金额存储
